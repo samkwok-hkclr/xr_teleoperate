@@ -1,0 +1,15 @@
+/left_arm/robot_controller:
+  ros__parameters:
+    group_name: "left_arm"
+    eef_name: "tcp_l"
+    ref_frame: "base_link"
+    default_eef_step: 0.01
+    default_jump_threshold: 5.0
+
+/right_arm/robot_controller:
+  ros__parameters:
+    group_name: "right_arm"
+    eef_name: "tcp_r"
+    ref_frame: "base_link"
+    default_eef_step: 0.01
+    default_jump_threshold: 5.0

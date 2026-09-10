@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="gripper_ros2_control" params="name prefix is_sim:=true">
+        <ros2_control name="${name}" type="system">
+            
+            <hardware>
+                <!-- Use a mock hardware interface for simulation, or your real gripper plugin -->
+                <xacro:if value="${is_sim}">
+                    <plugin>mock_components/GenericSystem</plugin>
+                </xacro:if>
+                <xacro:unless value="${is_sim}">
+                    <plugin>your_real_gripper_hardware/GripperHardwareInterface</plugin>
+                </xacro:unless>
+            </hardware>
+
+            <joint name="${prefix}J1_r">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+
+        </ros2_control>
+    </xacro:macro>
+</robot>

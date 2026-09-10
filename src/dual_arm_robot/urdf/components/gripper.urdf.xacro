@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <!--
+    Gripper Macro (parallel topology from 电爪装配 SolidWorks export)
+    Parameters:
+      end_effector_link: parent link name (e.g., "arm_end_effector_l" or "arm_end_effector_r")
+      prefix: prefix for gripper links (e.g., "arm")
+      meshdir: directory for mesh files
+      suffix: suffix for joint/link names (e.g., "l" or "r")
+      gripper_rpy: RPY orientation for gripper base joint (optional, defaults based on suffix)
+      gripper_xyz: XYZ translation for gripper base joint (optional, defaults to "0 0 0")
+  -->
+  <xacro:macro name="gripper_macro" params="end_effector_link prefix meshdir suffix gripper_rpy:='' gripper_xyz:='0 0 0'">
+    <xacro:if value="${suffix == 'l'}">
+      <xacro:property name="default_rpy" value="1.5708 -1.5708 -1.5708" />
+    </xacro:if>
+    <xacro:if value="${suffix == 'r'}">
+      <xacro:property name="default_rpy" value="-1.5708 -1.5708 1.5708" />
+    </xacro:if>
+    <xacro:property name="final_rpy" value="${gripper_rpy if gripper_rpy != '' else default_rpy}" />
+
+    <link name="gripper_base_link_${suffix}">
+      <inertial>
+        <origin xyz="-0.0095149 0.0024748 0.033808" rpy="0 0 0" />
+        <mass value="0.16369" />
+        <inertia
+          ixx="5.3134E-05"
+          ixy="3.3289E-06"
+          ixz="-7.5945E-07"
+          iyy="0.00016723"
+          iyz="1.8261E-06"
+          izz="0.00018403" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="${meshdir}/gripper_base_link.STL" />
+        </geometry>
+        <material name="">
+          <color rgba="0.49804 0.49804 0.49804 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="${meshdir}/gripper_base_link.STL" />
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="gripper_base_joint_${suffix}" type="fixed">
+      <origin xyz="${gripper_xyz}" rpy="${final_rpy}" />
+      <parent link="${end_effector_link}" />
+      <child link="gripper_base_link_${suffix}" />
+    </joint>
+
+    <link name="gripper_L1_${suffix}">
+      <inertial>
+        <origin xyz="0.0036599 -0.037923 -0.0045337" rpy="0 0 0" />
+        <mass value="0.1" />
+        <inertia
+          ixx="2.6164E-05"
+          ixy="1.0578E-06"
+          ixz="-2.4633E-06"
+          iyy="1.8775E-05"
+          iyz="1.2839E-06"
+          izz="1.3137E-05" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="${meshdir}/gripper_link01.STL" />
+        </geometry>
+        <material name="">
+          <color rgba="1 1 1 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="${meshdir}/gripper_link01.STL" />
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="gripper_J1_${suffix}" type="prismatic">
+      <origin xyz="-0.0042608 0 0.11826" rpy="1.5708 0 1.5708" />
+      <parent link="gripper_base_link_${suffix}" />
+      <child link="gripper_L1_${suffix}" />
+      <axis xyz="0 0 -1" />
+      <limit lower="0" upper="0.0396" effort="0.0" velocity="1.0" />
+    </joint>
+
+    <link name="gripper_L2_${suffix}">
+      <inertial>
+        <origin xyz="-0.0036599 0.037923 -0.0045337" rpy="0 0 0" />
+        <mass value="0.1" />
+        <inertia
+          ixx="2.6164E-05"
+          ixy="1.0578E-06"
+          ixz="2.4633E-06"
+          iyy="1.8775E-05"
+          iyz="-1.2839E-06"
+          izz="1.3137E-05" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="${meshdir}/gripper_link02.STL" />
+        </geometry>
+        <material name="">
+          <color rgba="1 1 1 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="${meshdir}/gripper_link02.STL" />
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="gripper_J1_${suffix}_1" type="prismatic">
+      <origin xyz="-0.0042608 0 0.11826" rpy="-1.5708 0 1.5708" />
+      <parent link="gripper_base_link_${suffix}" />
+      <child link="gripper_L2_${suffix}" />
+      <axis xyz="0 0 -1" />
+      <limit lower="0" upper="0.0396" effort="0.0" velocity="1.0" />
+      <mimic joint="gripper_J1_${suffix}" multiplier="1" offset="0"/>
+    </joint>
+  </xacro:macro>
+</robot>

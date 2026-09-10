@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="arm_left" xmlns:xacro="http://ros.org/wiki/xacro">
+	<xacro:macro name="arm_left_macro" params="base_link end_effector_link prefix suffix meshdir origin_roll origin_pitch origin_yaw origin_x origin_y origin_z">
+        <xacro:property name="origin_x_list" value="${str(origin_x).split(',')}" />
+        <xacro:property name="origin_y_list" value="${str(origin_y).split(',')}" />
+        <xacro:property name="origin_z_list" value="${str(origin_z).split(',')}" />
+        <xacro:property name="origin_roll_list" value="${str(origin_roll).split(',')}" />
+        <xacro:property name="origin_pitch_list" value="${str(origin_pitch).split(',')}" />
+        <xacro:property name="origin_yaw_list" value="${str(origin_yaw).split(',')}" />
+		<link name="${prefix}_${base_link}_${suffix}" />
+		<link name="${prefix}_L1_${suffix}">
+			<inertial>
+				<origin
+					xyz="-2.6346E-05 0.0078457 -0.015019"
+					rpy="0 0 0" />
+				<mass
+					value="1.8018" />
+				<inertia
+					ixx="0.0012538"
+					ixy="-1.9834E-06"
+					ixz="-5.2622E-07"
+					iyy="0.0012637"
+					iyz="-2.9121E-05"
+					izz="0.0012962" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z1.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="0.75294 0.75294 0.75294 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z1.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_J1_${suffix}" type="revolute">
+			<origin xyz="${origin_x_list[0]} ${origin_y_list[0]} ${origin_z_list[0]}" rpy="${origin_roll_list[0]} ${origin_pitch_list[0]} ${origin_yaw_list[0]}" />
+			<parent link="${prefix}_${base_link}_${suffix}" />
+			<child link="${prefix}_L1_${suffix}" />
+			<axis xyz="0 0 1" />
+			<limit effort="0" velocity="5.0" lower="-6.28319" upper="6.28319" />
+		</joint>
+		<link name="${prefix}_L2_${suffix}">
+			<inertial>
+				<origin
+					xyz="-0.00162680449849875 -0.0184910039651903 0.0136168777171135"
+					rpy="0 0 0" />
+				<mass
+					value="0.722746273788613" />
+				<inertia
+					ixx="0.00101515415715138"
+					ixy="-1.83976481745393E-06"
+					ixz="-5.00017447292936E-06"
+					iyy="0.00108593911796737"
+					iyz="-3.09022071787796E-05"
+					izz="0.00075346026516226" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z2.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="0.75294 0.75294 0.75294 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z2.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_J2_${suffix}" type="revolute">
+			<origin xyz="${origin_x_list[1]} ${origin_y_list[1]} ${origin_z_list[1]}" rpy="${origin_roll_list[1]} ${origin_pitch_list[1]} ${origin_yaw_list[1]}" />
+			<parent link="${prefix}_L1_${suffix}" />
+			<child link="${prefix}_L2_${suffix}" />
+			<axis xyz="0 0 1" />
+			<limit effort="0" velocity="5.0" lower="-1.04719755" upper="1.5708" />
+		</joint>
+		<link name="${prefix}_L3_${suffix}">
+			<inertial>
+				<origin
+					xyz="0.00248897788046915 0.000980375297908498 -0.155170322238981"
+					rpy="0 0 0" />
+				<mass
+					value="1.73968859476709" />
+				<inertia
+					ixx="0.00293271890093162"
+					ixy="-4.79608681639952E-05"
+					ixz="-0.000146667414672589"
+					iyy="0.00269309857056495"
+					iyz="-6.87443645449024E-05"
+					izz="0.00158103664901736" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z3.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="0.75294 0.75294 0.75294 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z3.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_J3_${suffix}" type="revolute">
+			<origin xyz="${origin_x_list[2]} ${origin_y_list[2]} ${origin_z_list[2]}" rpy="${origin_roll_list[2]} ${origin_pitch_list[2]} ${origin_yaw_list[2]}" />
+			<parent link="${prefix}_L2_${suffix}" />
+			<child link="${prefix}_L3_${suffix}" />
+			<axis xyz="0 0 1" />
+			<limit effort="0" velocity="5.0" lower="-6.28319" upper="6.28319" />
+		</joint>
+		<link name="${prefix}_L4_${suffix}">
+			<inertial>
+				<origin
+					xyz="-7.95930562576055E-05 -0.0209081888775424 -0.00839273201372635"
+					rpy="0 0 0" />
+				<mass
+					value="1.29895883494625" />
+				<inertia
+					ixx="0.00236794137161359"
+					ixy="1.41094009131354E-06"
+					ixz="3.26441824470034E-06"
+					iyy="0.000772004438480909"
+					iyz="-1.41963902711768E-05"
+					izz="0.00230845362045843" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z4.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="0.75294 0.75294 0.75294 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z4.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_J4_${suffix}" type="revolute">
+			<origin xyz="${origin_x_list[3]} ${origin_y_list[3]} ${origin_z_list[3]}" rpy="${origin_roll_list[3]} ${origin_pitch_list[3]} ${origin_yaw_list[3]}" />
+			<parent link="${prefix}_L3_${suffix}" />
+			<child link="${prefix}_L4_${suffix}" />
+			<axis xyz="0 0 1" />
+			<limit effort="0" velocity="5.0" lower="-0.698132" upper="2.53073" />
+		</joint>
+		<link name="${prefix}_L5_${suffix}">
+		    <inertial>
+				<origin
+					xyz="2.68743304497679E-05 -0.000851836802176022 -0.0916349097621273"
+					rpy="0 0 0" />
+				<mass
+					value="0.943914533169422" />
+				<inertia
+					ixx="0.000932583986369677"
+					ixy="7.13940481879585E-08"
+					ixz="-4.23489306151067E-07"
+					iyy="0.000810483559256229"
+					iyz="3.87793562954479E-05"
+					izz="0.000572990487252309" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z5.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="0.75294 0.75294 0.75294 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z5.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_J5_${suffix}" type="revolute">
+			<origin xyz="${origin_x_list[4]} ${origin_y_list[4]} ${origin_z_list[4]}" rpy="${origin_roll_list[4]} ${origin_pitch_list[4]} ${origin_yaw_list[4]}" />
+			<parent link="${prefix}_L4_${suffix}" />
+			<child link="${prefix}_L5_${suffix}" />
+			<axis xyz="0 0 1" />
+			<limit effort="0" velocity="5.0" lower="-6.28319" upper="6.28319" />
+		</joint>
+		<link name="${prefix}_L6_${suffix}">
+			<inertial>
+				<origin
+					xyz="0.00800275122646132 0.00107823069734021 -0.00802800591053457"
+					rpy="0 0 0" />
+				<mass
+					value="0.874611215710047" />
+				<inertia
+					ixx="0.000482452180106678"
+					ixy="-2.77362851605959E-05"
+					ixz="1.16589607353367E-05"
+					iyy="0.00051925409634228"
+					iyz="2.08307738736656E-07"
+					izz="0.000655950638716933" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z6.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="0.75294 0.75294 0.75294 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z6.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_J6_${suffix}" type="revolute">
+			<origin xyz="${origin_x_list[5]} ${origin_y_list[5]} ${origin_z_list[5]}" rpy="${origin_roll_list[5]} ${origin_pitch_list[5]} ${origin_yaw_list[5]}" />
+			<parent link="${prefix}_L5_${suffix}" />
+			<child link="${prefix}_L6_${suffix}" />
+			<axis xyz="0 0 1" />
+			<limit effort="0" velocity="5.0" lower="-1.22173" upper="1.22173" />
+		</joint>
+		<link name="${prefix}_L7_${suffix}">
+			<inertial>
+				<origin
+					xyz="0.00123179621345593 -2.64550055661451E-05 -0.00924922785844516"
+					rpy="0 0 0" />
+				<mass
+					value="0.755421642189138" />
+				<inertia
+					ixx="0.000267519694546656"
+					ixy="-6.03780942731788E-08"
+					ixz="1.01902521515902E-07"
+					iyy="0.000290981218838791"
+					iyz="-9.64913843298825E-09"
+					izz="0.000297354028910234" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z7.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="0.75294 0.75294 0.75294 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="${meshdir}/z7.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_J7_${suffix}" type="revolute">
+			<origin xyz="${origin_x_list[6]} ${origin_y_list[6]} ${origin_z_list[6]}" rpy="${origin_roll_list[6]} ${origin_pitch_list[6]} ${origin_yaw_list[6]}"/>
+			<parent link="${prefix}_L6_${suffix}" />
+			<child link="${prefix}_L7_${suffix}" />
+			<axis xyz="0 0 1" />
+			<limit effort="0" velocity="5.0" lower="-1.22173" upper="1.22173" />
+		</joint>
+		<link name="${prefix}_${end_effector_link}_${suffix}">
+		</link>
+		<joint name="${prefix}_J8_${suffix}" type="fixed">
+			<origin xyz="0.045 0 0" rpy="0 0 0" />
+			<parent link="${prefix}_L7_${suffix}" />
+			<child link="${prefix}_${end_effector_link}_${suffix}" />
+		</joint>
+	</xacro:macro>
+</robot>

@@ -1,0 +1,23 @@
+left_arm:
+  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+  kinematics_solver_search_resolution: 0.0050000000000000001
+  kinematics_solver_timeout: 0.0050000000000000001
+  # kinematics_solver: trac_ik_kinematics_plugin/TRAC_IKKinematicsPlugin
+  # kinematics_solver_timeout: 0.01
+  # kinematics_solver_attempts: 3
+  # # TRAC-IK specific parameters (optional)
+  # solve_type: Distance
+  # position_only_ik: False
+
+right_arm:
+  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+  kinematics_solver_search_resolution: 0.0050000000000000001
+  kinematics_solver_timeout: 0.0050000000000000001
+  # kinematics_solver: pick_ik/PickIkPlugin
+  # kinematics_solver_timeout: 0.005         # 5ms is correct for MoveIt Servo
+  # kinematics_solver_attempts: 1            # Local mode doesn't benefit from multiple attempts
+  # mode: local
+  # position_threshold: 0.005                # 5mm tolerance
+  # orientation_threshold: 0.05              # ~2.8 deg tolerance
+  # minimal_displacement_weight: 0.001       # Prioritize pose matching over displacement
+  # gd_step_size: 0.005                      # Larger steps to beat the 5ms timeout

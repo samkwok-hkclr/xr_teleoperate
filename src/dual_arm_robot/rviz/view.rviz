@@ -1,0 +1,619 @@
+Panels:
+  - Class: rviz_common/Displays
+    Help Height: 78
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Status1
+        - /TF1/Frames1
+      Splitter Ratio: 0.5873016119003296
+    Tree Height: 694
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Expanded:
+      - /2D Goal Pose1
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: rviz_common/Time
+    Experimental: false
+    Name: Time
+    SyncMode: 0
+    SyncSource: ""
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        DP:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        L_index_distal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_index_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_middle_distal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_middle_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_pinky_distal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_pinky_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_ring_distal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_ring_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_thumb_distal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_thumb_intermediate:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_thumb_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_thumb_proximal_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Link Tree Style: Links in Alphabetic Order
+        arm_L1_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L1_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L2_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L2_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L3_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L3_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L4_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L4_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L5_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L5_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L6_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L6_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L7_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_L7_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_base_link_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        arm_base_link_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        arm_end_effector_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        arm_end_effector_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        gripper_L1_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gripper_L2_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gripper_base_link_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hand_base_link_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        s1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        s2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        s3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        s4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tcp_l:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tcp_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: RobotModel
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Acceleration_Scaling_Factor: 0.1
+      Class: moveit_rviz_plugin/MotionPlanning
+      Enabled: false
+      Move Group Namespace: ""
+      MoveIt_Allow_Approximate_IK: false
+      MoveIt_Allow_External_Program: false
+      MoveIt_Allow_Replanning: false
+      MoveIt_Allow_Sensor_Positioning: false
+      MoveIt_Planning_Attempts: 10
+      MoveIt_Planning_Time: 5
+      MoveIt_Use_Cartesian_Path: false
+      MoveIt_Use_Constraint_Aware_IK: false
+      MoveIt_Workspace:
+        Center:
+          X: 0
+          Y: 0
+          Z: 0
+        Size:
+          X: 2
+          Y: 2
+          Z: 2
+      Name: MotionPlanning
+      Planned Path:
+        Color Enabled: false
+        Interrupt Display: false
+        Links:
+          All Links Enabled: true
+          Expand Joint Details: false
+          Expand Link Details: false
+          Expand Tree: false
+          Link Tree Style: Links in Alphabetic Order
+        Loop Animation: false
+        Robot Alpha: 0.5
+        Robot Color: 150; 50; 150
+        Show Robot Collision: false
+        Show Robot Visual: true
+        Show Trail: false
+        State Display Time: 3x
+        Trail Step Size: 1
+        Trajectory Topic: /display_planned_path
+        Use Sim Time: false
+      Planning Metrics:
+        Payload: 1
+        Show Joint Torques: false
+        Show Manipulability: false
+        Show Manipulability Index: false
+        Show Weight Limit: false
+        TextHeight: 0.07999999821186066
+      Planning Request:
+        Colliding Link Color: 255; 0; 0
+        Goal State Alpha: 1
+        Goal State Color: 250; 128; 0
+        Interactive Marker Size: 0
+        Joint Violation Color: 255; 0; 255
+        Planning Group: dual_arm
+        Query Goal State: true
+        Query Start State: false
+        Show Workspace: false
+        Start State Alpha: 1
+        Start State Color: 0; 255; 0
+      Planning Scene Topic: /monitored_planning_scene
+      Robot Description: robot_description
+      Scene Geometry:
+        Scene Alpha: 0.8999999761581421
+        Scene Color: 50; 230; 50
+        Scene Display Time: 0.009999999776482582
+        Show Scene Geometry: true
+        Voxel Coloring: Z-Axis
+        Voxel Rendering: Occupied Voxels
+      Scene Robot:
+        Attached Body Color: 150; 50; 150
+        Links:
+          All Links Enabled: true
+          Expand Joint Details: false
+          Expand Link Details: false
+          Expand Tree: false
+          Link Tree Style: Links in Alphabetic Order
+        Robot Alpha: 1
+        Show Robot Collision: false
+        Show Robot Visual: true
+      Value: false
+      Velocity_Scaling_Factor: 0.1
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        DP:
+          Value: false
+        L_index_distal:
+          Value: false
+        L_index_proximal:
+          Value: false
+        L_middle_distal:
+          Value: false
+        L_middle_proximal:
+          Value: false
+        L_pinky_distal:
+          Value: false
+        L_pinky_proximal:
+          Value: false
+        L_ring_distal:
+          Value: false
+        L_ring_proximal:
+          Value: false
+        L_thumb_distal:
+          Value: false
+        L_thumb_intermediate:
+          Value: false
+        L_thumb_proximal:
+          Value: false
+        L_thumb_proximal_base:
+          Value: false
+        arm_L1_l:
+          Value: false
+        arm_L1_r:
+          Value: false
+        arm_L2_l:
+          Value: false
+        arm_L2_r:
+          Value: false
+        arm_L3_l:
+          Value: false
+        arm_L3_r:
+          Value: false
+        arm_L4_l:
+          Value: false
+        arm_L4_r:
+          Value: false
+        arm_L5_l:
+          Value: false
+        arm_L5_r:
+          Value: false
+        arm_L6_l:
+          Value: false
+        arm_L6_r:
+          Value: false
+        arm_L7_l:
+          Value: false
+        arm_L7_r:
+          Value: false
+        arm_base_link_l:
+          Value: false
+        arm_base_link_r:
+          Value: false
+        arm_end_effector_l:
+          Value: false
+        arm_end_effector_r:
+          Value: false
+        base_link:
+          Value: false
+        gripper_L1_r:
+          Value: false
+        gripper_L2_r:
+          Value: false
+        gripper_base_link_r:
+          Value: false
+        hand_base_link_l:
+          Value: false
+        head_frame:
+          Value: false
+        left_hand_frame:
+          Value: true
+        left_hand_frame_raw:
+          Value: false
+        right_hand_frame:
+          Value: true
+        right_hand_frame_raw:
+          Value: false
+        s1:
+          Value: false
+        s2:
+          Value: false
+        s3:
+          Value: false
+        s4:
+          Value: false
+        tcp_l:
+          Value: true
+        tcp_r:
+          Value: true
+        xr_base_link:
+          Value: false
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        base_link:
+          DP:
+            s1:
+              s2:
+                s3:
+                  s4:
+                    arm_base_link_l:
+                      arm_L1_l:
+                        arm_L2_l:
+                          arm_L3_l:
+                            arm_L4_l:
+                              arm_L5_l:
+                                arm_L6_l:
+                                  arm_L7_l:
+                                    arm_end_effector_l:
+                                      hand_base_link_l:
+                                        L_index_proximal:
+                                          L_index_distal:
+                                            {}
+                                        L_middle_proximal:
+                                          L_middle_distal:
+                                            {}
+                                        L_pinky_proximal:
+                                          L_pinky_distal:
+                                            {}
+                                        L_ring_proximal:
+                                          L_ring_distal:
+                                            {}
+                                        L_thumb_proximal_base:
+                                          L_thumb_proximal:
+                                            L_thumb_intermediate:
+                                              L_thumb_distal:
+                                                {}
+                                        tcp_l:
+                                          {}
+                      xr_base_link:
+                        head_frame:
+                          left_hand_frame_raw:
+                            {}
+                          right_hand_frame_raw:
+                            {}
+                    arm_base_link_r:
+                      arm_L1_r:
+                        arm_L2_r:
+                          arm_L3_r:
+                            arm_L4_r:
+                              arm_L5_r:
+                                arm_L6_r:
+                                  arm_L7_r:
+                                    arm_end_effector_r:
+                                      gripper_base_link_r:
+                                        gripper_L1_r:
+                                          {}
+                                        gripper_L2_r:
+                                          {}
+                                        tcp_r:
+                                          {}
+          left_hand_frame:
+            {}
+          right_hand_frame:
+            {}
+      Update Interval: 0
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+      Line color: 128; 128; 0
+    - Class: rviz_default_plugins/SetInitialPose
+      Covariance x: 0.25
+      Covariance y: 0.25
+      Covariance yaw: 0.06853891909122467
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /initialpose
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /goal_pose
+    - Class: rviz_default_plugins/PublishPoint
+      Single click: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /clicked_point
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 2.005931854248047
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Focal Point:
+        X: 0.34864342212677
+        Y: -0.09853509068489075
+        Z: 1.1606894731521606
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.41979652643203735
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz)
+      Yaw: 1.085398554801941
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 985
+  Hide Left Dock: false
+  Hide Right Dock: true
+  MotionPlanning:
+    collapsed: false
+  MotionPlanning - Trajectory Slider:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000004000000000000017c0000033ffc020000000bfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000033f000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000280020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e006700000001e2000002020000016900ffffff000000010000010f000002b4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b4000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000006560000003efc0100000002fb0000000800540069006d00650100000000000006560000025300fffffffb0000000800540069006d00650100000000000004500000000000000000000004d40000033f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Time:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: true
+  Width: 1622
+  X: 2047
+  Y: -28

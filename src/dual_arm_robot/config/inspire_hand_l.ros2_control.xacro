@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="inspire_hand_l_ros2_control" params="name is_sim:=true">
+        <ros2_control name="${name}" type="system">
+            
+            <hardware>
+                <xacro:if value="${is_sim}">
+                    <plugin>mock_components/GenericSystem</plugin>
+                </xacro:if>
+                <xacro:unless value="${is_sim}">
+                    <plugin>your_hand_hardware/InspireHandHardwareInterface</plugin>
+                </xacro:unless>
+            </hardware>
+
+            <!-- ALL JOINTS (Active and Mimic, matching your controller YAML) -->
+            <joint name="hand_J1_l">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J2_l">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J2_l_1">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J2_l_2">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J3_l">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J3_l_1">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J4_l">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J4_l_1">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J5_l">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J5_l_1">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J6_l">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="hand_J6_l_1">
+                <command_interface name="position" />
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity" />
+            </joint>
+
+        </ros2_control>
+    </xacro:macro>
+</robot>

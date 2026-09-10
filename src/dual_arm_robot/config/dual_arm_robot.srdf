@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="dual_arm_robot">
+
+  <!-- ==================== GROUPS ==================== -->
+
+  <!-- Left Arm -->
+  <group name="left_arm">
+    <chain base_link="arm_base_link_l" tip_link="tcp_l"/>
+  </group>
+
+  <!-- Right Arm -->
+  <group name="right_arm">
+    <chain base_link="arm_base_link_r" tip_link="tcp_r"/>
+  </group>
+
+  <!-- Dual Arm (both arms) -->
+  <group name="dual_arm">
+    <group name="left_arm"/>
+    <group name="right_arm"/>
+  </group>
+
+  <!-- ==================== GROUP STATES ==================== -->
+
+  <group_state name="home" group="left_arm">
+    <joint name="arm_J1_l" value="0"/>
+    <joint name="arm_J2_l" value="0"/>
+    <joint name="arm_J3_l" value="0"/>
+    <joint name="arm_J4_l" value="0"/>
+    <joint name="arm_J5_l" value="0"/>
+    <joint name="arm_J6_l" value="0"/>
+    <joint name="arm_J7_l" value="0"/>
+  </group_state>
+
+  <group_state name="home" group="right_arm">
+    <joint name="arm_J1_r" value="0"/>
+    <joint name="arm_J2_r" value="0"/>
+    <joint name="arm_J3_r" value="0"/>
+    <joint name="arm_J4_r" value="0"/>
+    <joint name="arm_J5_r" value="0"/>
+    <joint name="arm_J6_r" value="0"/>
+    <joint name="arm_J7_r" value="0"/>
+  </group_state>
+
+  <!-- ==================== VIRTUAL JOINT ==================== -->
+  <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link"/>
+
+  <!-- ==================== DISABLE COLLISIONS ==================== -->
+  <!-- Disable self-collisions between adjacent or fixed links to optimize collision checking -->
+  <disable_collisions link1="DP" link2="L_index_distal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_index_proximal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_middle_distal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_middle_proximal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_pinky_distal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_pinky_proximal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_ring_distal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_ring_proximal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_thumb_distal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_thumb_intermediate" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_thumb_proximal" reason="Never"/>
+  <disable_collisions link1="DP" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L1_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L2_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L3_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="DP" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="gripper_base_link_r" reason="Never"/>
+  <disable_collisions link1="DP" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="DP" link2="s1" reason="Adjacent"/>
+  <disable_collisions link1="DP" link2="s2" reason="Never"/>
+  <disable_collisions link1="DP" link2="s3" reason="Never"/>
+  <disable_collisions link1="DP" link2="s4" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="L_index_proximal" reason="Adjacent"/>
+  <disable_collisions link1="L_index_distal" link2="L_middle_distal" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="L_middle_proximal" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="L_pinky_distal" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="L_pinky_proximal" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="L_ring_distal" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="L_ring_proximal" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_index_distal" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="L_middle_distal" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="L_middle_proximal" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="L_pinky_distal" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="L_pinky_proximal" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="L_ring_distal" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="L_ring_proximal" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="L_thumb_proximal" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="L_index_proximal" link2="hand_base_link_l" reason="Adjacent"/>
+  <disable_collisions link1="L_middle_distal" link2="L_middle_proximal" reason="Adjacent"/>
+  <disable_collisions link1="L_middle_distal" link2="L_pinky_distal" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="L_pinky_proximal" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="L_ring_distal" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="L_ring_proximal" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="L_thumb_distal" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="L_middle_distal" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="L_pinky_distal" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="L_pinky_proximal" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="L_ring_distal" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="L_ring_proximal" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="L_thumb_distal" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="L_thumb_intermediate" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="L_thumb_proximal" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="L_middle_proximal" link2="hand_base_link_l" reason="Adjacent"/>
+  <disable_collisions link1="L_pinky_distal" link2="L_pinky_proximal" reason="Adjacent"/>
+  <disable_collisions link1="L_pinky_distal" link2="L_ring_distal" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="L_ring_proximal" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="L_thumb_distal" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="L_thumb_intermediate" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="L_thumb_proximal" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_distal" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="L_ring_distal" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="L_ring_proximal" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="L_thumb_distal" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="L_thumb_intermediate" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="L_thumb_proximal" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="L_pinky_proximal" link2="hand_base_link_l" reason="Adjacent"/>
+  <disable_collisions link1="L_ring_distal" link2="L_ring_proximal" reason="Adjacent"/>
+  <disable_collisions link1="L_ring_distal" link2="L_thumb_distal" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="L_thumb_intermediate" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="L_thumb_proximal" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L3_r" reason="User"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="gripper_base_link_r" reason="Never"/>
+  <disable_collisions link1="L_ring_distal" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="L_thumb_distal" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="L_thumb_intermediate" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="L_thumb_proximal" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="L_ring_proximal" link2="hand_base_link_l" reason="Adjacent"/>
+  <disable_collisions link1="L_thumb_distal" link2="L_thumb_intermediate" reason="Adjacent"/>
+  <disable_collisions link1="L_thumb_distal" link2="L_thumb_proximal" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_distal" link2="s1" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="L_thumb_proximal" reason="Adjacent"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="L_thumb_proximal_base" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_intermediate" link2="s1" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="L_thumb_proximal_base" reason="Adjacent"/>
+  <disable_collisions link1="L_thumb_proximal" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal" link2="s1" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L1_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L2_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="hand_base_link_l" reason="Adjacent"/>
+  <disable_collisions link1="L_thumb_proximal_base" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L2_l" reason="Adjacent"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L3_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="s2" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="s3" reason="Never"/>
+  <disable_collisions link1="arm_L1_l" link2="s4" reason="Adjacent"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L2_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L2_r" reason="Adjacent"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L3_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="gripper_base_link_r" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="s2" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="s3" reason="Never"/>
+  <disable_collisions link1="arm_L1_r" link2="s4" reason="Adjacent"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L3_l" reason="Adjacent"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L3_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="s2" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="s3" reason="Never"/>
+  <disable_collisions link1="arm_L2_l" link2="s4" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L3_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L3_r" reason="Adjacent"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="s2" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="s3" reason="Never"/>
+  <disable_collisions link1="arm_L2_r" link2="s4" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L3_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L4_l" reason="Adjacent"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="s2" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="s3" reason="Never"/>
+  <disable_collisions link1="arm_L3_l" link2="s4" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="arm_L4_l" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="arm_L4_r" reason="Adjacent"/>
+  <disable_collisions link1="arm_L3_r" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="gripper_base_link_r" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="s2" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="s3" reason="Never"/>
+  <disable_collisions link1="arm_L3_r" link2="s4" reason="Never"/>
+  <disable_collisions link1="arm_L4_l" link2="arm_L4_r" reason="Never"/>
+  <disable_collisions link1="arm_L4_l" link2="arm_L5_l" reason="Adjacent"/>
+  <disable_collisions link1="arm_L4_l" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="arm_L4_l" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L4_l" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L4_l" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L4_l" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="arm_L4_l" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="arm_L5_l" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="arm_L5_r" reason="Adjacent"/>
+  <disable_collisions link1="arm_L4_r" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="arm_L6_r" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="gripper_base_link_r" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="arm_L4_r" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L5_l" link2="arm_L5_r" reason="Never"/>
+  <disable_collisions link1="arm_L5_l" link2="arm_L6_l" reason="Adjacent"/>
+  <disable_collisions link1="arm_L5_l" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L5_l" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="arm_L5_l" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L5_r" link2="arm_L6_l" reason="Never"/>
+  <disable_collisions link1="arm_L5_r" link2="arm_L6_r" reason="Adjacent"/>
+  <disable_collisions link1="arm_L5_r" link2="arm_L7_l" reason="Never"/>
+  <disable_collisions link1="arm_L5_r" link2="arm_L7_r" reason="Never"/>
+  <disable_collisions link1="arm_L5_r" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L5_r" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L5_r" link2="gripper_base_link_r" reason="Never"/>
+  <disable_collisions link1="arm_L5_r" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L6_l" link2="arm_L7_l" reason="Adjacent"/>
+  <disable_collisions link1="arm_L6_l" link2="hand_base_link_l" reason="Never"/>
+  <disable_collisions link1="arm_L6_l" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L6_r" link2="arm_L7_r" reason="Adjacent"/>
+  <disable_collisions link1="arm_L6_r" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L6_r" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L6_r" link2="gripper_base_link_r" reason="Never"/>
+  <disable_collisions link1="arm_L6_r" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L7_l" link2="hand_base_link_l" reason="Adjacent"/>
+  <disable_collisions link1="arm_L7_l" link2="s1" reason="Never"/>
+  <disable_collisions link1="arm_L7_r" link2="gripper_L1_r" reason="Never"/>
+  <disable_collisions link1="arm_L7_r" link2="gripper_L2_r" reason="Never"/>
+  <disable_collisions link1="arm_L7_r" link2="gripper_base_link_r" reason="Adjacent"/>
+  <disable_collisions link1="arm_L7_r" link2="s1" reason="Never"/>
+  <disable_collisions link1="gripper_L1_r" link2="gripper_L2_r" reason="Default"/>
+  <disable_collisions link1="gripper_L1_r" link2="gripper_base_link_r" reason="Adjacent"/>
+  <disable_collisions link1="gripper_L2_r" link2="gripper_base_link_r" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base_link_r" link2="s1" reason="Never"/>
+  <disable_collisions link1="s1" link2="s2" reason="Adjacent"/>
+  <disable_collisions link1="s1" link2="s3" reason="Never"/>
+  <disable_collisions link1="s1" link2="s4" reason="Never"/>
+  <disable_collisions link1="s2" link2="s3" reason="Adjacent"/>
+  <disable_collisions link1="s2" link2="s4" reason="Never"/>
+  <disable_collisions link1="s3" link2="s4" reason="Adjacent"/>
+</robot>

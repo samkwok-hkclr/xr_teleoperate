@@ -1,0 +1,52 @@
+
+services:
+  golf_nav:
+    image: golf_nav_img:latest
+    container_name: golf_nav
+    hostname: golf_nav
+    command: ["ros2", "launch", "golf_nav_bringup", "golf_nav.launch.py", "config:=/config/navigation.yaml"]
+    init: true
+    stop_grace_period: 5s
+    volumes:
+      - /home/hkclr/golf_nav/logs:/logs
+      - /home/hkclr/golf_nav/paths:/root/golf_nav/paths
+      - /home/hkclr/golf_nav/obstacle:/root/golf_nav/obstacle
+      - /tmp:/tmp
+      - /home/hkclr/golf_nav/src/golf_nav_bringup/config:/config
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    pid: host
+
+  hw_itf:
+    image: golf_nav_img:latest
+    container_name: hw_itf
+    hostname: hw_itf
+    privileged: true
+    command: ["ros2", "launch", "golf_nav_bringup", "hardware_interface.launch.py", "config:=/config/hw_itf.yaml"]
+    init: true
+    stop_grace_period: 5s
+    volumes:
+      - /home/hkclr/golf_nav/logs:/logs
+      - /dev:/dev
+      - /tmp:/tmp
+      - /sys/class/pwm:/sys/class/pwm
+      - /home/hkclr/golf_nav/src/golf_nav_bringup/config:/config
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    pid: host
+
+  livox_lidar:
+    image: livox_lidar_img:latest
+    container_name: livox_lidar
+    hostname: livox_lidar
+    command: ["ros2", "launch", "lidar_bringup", "livox_lidar.launch.py"]
+    init: true
+    volumes:
+      - /home/hkclr/golf_nav/logs:/logs
+      - /tmp:/tmp
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    pid: host

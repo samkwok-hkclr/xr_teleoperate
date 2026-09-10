@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="dual_arm_robot" xmlns:xacro="http://ros.org/wiki/xacro">
+
+	<!-- Declare launch arguments -->
+	<xacro:arg name="left_arm_sim" default="true" />
+	<xacro:arg name="right_arm_sim" default="true" />
+
+	<mujoco>
+		<compiler meshdir="meshes/visual/" balanceinertia="true" discardvisual="false" />
+	</mujoco>
+
+	<xacro:include filename="$(find dual_arm_robot)/urdf/components/gripper.urdf.xacro" />
+	<xacro:include filename="$(find dual_arm_robot)/urdf/components/inspire_hand_l.urdf.xacro" />
+	<xacro:include filename="$(find dual_arm_robot)/urdf/components/arm_left.urdf.xacro" />
+	<xacro:include filename="$(find dual_arm_robot)/urdf/components/arm_right.urdf.xacro" />
+
+	<xacro:include filename="$(find dual_arm_robot)/config/dual_arm.ros2_control.xacro" />
+	<xacro:include filename="$(find dual_arm_robot)/config/gripper.ros2_control.xacro" />
+	<xacro:include filename="$(find dual_arm_robot)/config/inspire_hand_l.ros2_control.xacro" />
+
+	<link name="base_link" />
+	<joint name="w0" type="fixed">
+		<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159" />
+		<parent link="base_link" />
+		<child link="DP" />
+		<axis xyz="0 0 1" />
+		<limit lower="0" upper="0" effort="0" velocity="0" />
+	</joint>
+
+	<!-- V2 Waist Structure: DP to s4 -->
+	<link name="DP">
+		<inertial>
+			<origin xyz="0.0120762037678243 -0.0119954938742637 0.127090040942829" rpy="0 0 0" />
+			<mass value="44.1605811975989" />
+			<inertia ixx="0.312751937537749" ixy="-0.0606803834170765" ixz="0.000113964813907761"
+				iyy="0.356800155698396" iyz="0.00110337529407953" izz="0.608747743567384" />
+		</inertial>
+		<visual>
+			<origin xyz="-0.17 -0.0095272563278727 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/DP.STL" />
+			</geometry>
+			<material name="">
+				<color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+			</material>
+		</visual>
+		<collision>
+			<origin xyz="-0.17 -0.0095272563278727 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/DP.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="s1">
+		<inertial>
+			<origin xyz="0.226034759482347 0.0089178389580318 -0.0155588345793732" rpy="0 0 0" />
+			<mass value="7.33861438888969" />
+			<inertia ixx="0.00728831359742297" ixy="-0.00190883437599297"
+				ixz="-0.000885194483134077" iyy="0.0556091600309597" iyz="-3.75108603689293E-05"
+				izz="0.0592479716400448" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0.00785" rpy="0 0 -1.59" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/s1.STL" />
+			</geometry>
+			<material name="">
+				<color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+			</material>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0.00785" rpy="0 0 -1.59" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/s1.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="s1j" type="fixed">
+		<origin xyz="0.0 0.0 0.191" rpy="-1.5707963267949 0.0 0.0" />
+		<parent link="DP" />
+		<child link="s1" />
+		<axis xyz="0 0 1" />
+		<limit lower="0" upper="0" effort="0" velocity="0" />
+	</joint>
+
+	<link name="s2">
+		<inertial>
+			<origin xyz="0.135013083932529 -0.029106780334011 -0.0313419787724153" rpy="0 0 0" />
+			<mass value="3.4665387085359" />
+			<inertia ixx="0.00425349257667328" ixy="0.0092587742907856" ixz="-3.12665418859238E-05"
+				iyy="0.0450515456854223" iyz="6.75586001794495E-06" izz="0.0486889243882853" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0.00785" rpy="0 0 -1.35" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/s2.STL" />
+			</geometry>
+			<material name="">
+				<color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+			</material>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0.00785" rpy="0 0 -1.35" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/s2.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="s2j" type="fixed">
+		<origin xyz="0.0 -0.32475 0.0" rpy="0 0 0"/>
+		<parent link="s1" />
+		<child link="s2" />
+		<axis xyz="0 0 1" />
+		<limit lower="0" upper="0" effort="0" velocity="0" />
+	</joint>
+
+	<link name="s3">
+		<inertial>
+			<origin xyz="0.00452485089660748 -0.0258009971448284 -0.0115991250507664" rpy="0 0 0" />
+			<mass value="3.0631585448688" />
+			<inertia ixx="0.00690131033425852" ixy="0.000401191816314391"
+				ixz="-3.57066611643954E-05" iyy="0.00467232431413507" iyz="0.000203585399127"
+				izz="0.00704139048908576" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0.00785" rpy="0 0 -0.2123" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/s3.STL" />
+			</geometry>
+			<material name="">
+				<color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+			</material>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0.00785" rpy="0 0 -0.2123" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/s3.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="s3j" type="fixed">
+		<origin xyz="0.0 -0.31765 0.0" rpy="0 0 0"/>
+		<parent link="s2" />
+		<child link="s3" />
+		<axis xyz="0 0 1" />
+		<limit lower="0" upper="0" effort="0" velocity="0" />
+	</joint>
+
+	<link name="s4">
+		<inertial>
+			<origin xyz="0.00629908978173603 0.01315393690424 -0.129363527706989" rpy="0 0 0" />
+			<mass value="7.92042850162327" />
+			<inertia ixx="0.0779176752134302" ixy="1.04503605777624E-05" ixz="0.00159914726181089"
+				iyy="0.065233911692971" iyz="2.70837690156867E-05" izz="0.023015224604043" />
+		</inertial>
+		<visual>
+			<origin xyz="-0.0155 0.0 -0.01521" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/s4.STL" />
+			</geometry>
+			<material name="">
+				<color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+			</material>
+		</visual>
+		<collision>
+			<origin xyz="-0.0155 0.0 -0.01521" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="package://dual_arm_robot/meshes/base/s4.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="s4j" type="fixed">
+		<origin xyz="0.0 -0.50254 0.0" rpy="1.5707963267949 3.14159 0.0" />
+		<parent link="s3" />
+		<child link="s4" />
+		<axis xyz="0 0 1" />
+		<limit lower="0" upper="0" effort="0" velocity="0" />
+	</joint>
+
+	<!-- Left Arm -->
+	<xacro:arm_left_macro base_link="base_link" end_effector_link="end_effector" prefix="arm"
+		suffix="l" meshdir="package://dual_arm_robot/meshes/arm"
+		origin_roll="-1.57079632, -1.57079632, 1.57079632 , -1.57079632, 1.57079632, -1.57079632, 1.57079632"
+		origin_pitch="0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, -1.57079632, 0.000000000"
+		origin_yaw="0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000"
+		origin_x="0.000000000, 0.000000000, 0.000000000, 0.039      , 0.000000000, 0.000000000, 0.067      "
+		origin_y="0.209      , 0.000000000, -0.310      , 0.000000000, -0.310      , 0.000000000, 0.000000000"
+		origin_z="0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000" />
+	<joint name="J0_l" type="fixed">
+		<origin xyz="0 0 0" rpy="0 0 0" />
+		<parent link="s4" />
+		<child link="arm_base_link_l" />
+	</joint>
+	
+	<!-- Right Arm -->
+	<xacro:arm_right_macro base_link="base_link" end_effector_link="end_effector" prefix="arm"
+		suffix="r" meshdir="package://dual_arm_robot/meshes/arm"
+		origin_roll="-1.57079632, 1.57079632 , -1.57079632, 1.57079632, -1.57079632 , 1.57079632 , -1.57079632"
+		origin_pitch="0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 1.57079632 , 0.000000000"
+		origin_yaw="0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000"
+		origin_x="0.000000000, 0.000000000, 0.000000000, 0.039      , 0.000000000, 0.000000000, 0.067      "
+		origin_y="-0.209     , 0.000000000, -0.310      , 0.000000000, -0.310      , 0.000000000, 0.000000000"
+		origin_z="0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000" />
+	<joint name="J0_r" type="fixed">
+		<origin xyz="0 0 0" rpy="0 0 0" />
+		<parent link="s4" />
+		<child link="arm_base_link_r" />
+	</joint>
+
+	<xacro:realman_arm_ros2_control 
+		sim_left="$(arg left_arm_sim)" 
+		sim_right="$(arg right_arm_sim)" 
+		namespace="arm" />
+
+	<!-- Left Hand -->
+	<joint name="hand_J0_l" type="fixed">
+		<origin xyz="-0.01 0 0" rpy="1.5708 -1.5708 -1.5708" />
+		<parent link="arm_end_effector_l" />
+		<child link="hand_base_link_l" />
+	</joint>
+
+	<joint name="tcp_l_joint" type="fixed">
+		<origin xyz="0.0 -0.03 -0.1" rpy="0.0 1.5707963 0.0" />
+		<parent link="hand_base_link_l" />
+		<child link="tcp_l" />
+	</joint>
+	
+	<link name="tcp_l"/>
+
+	<xacro:inspire_hand_l_ros2_control 
+		name="LeftHand" 
+		is_sim="$(arg left_arm_sim)" />
+
+	<xacro:inspire_hand_l_macro base_link="hand_base_link_l" 
+				meshdir="package://dual_arm_robot/meshes/inspire_hand_l" />
+
+	<!-- Right Hand -->
+	<xacro:gripper_ros2_control 
+		name="RightGripper" 
+		prefix="gripper_" 
+		is_sim="$(arg right_arm_sim)" />
+
+	<xacro:gripper_macro end_effector_link="arm_end_effector_r" prefix="arm"
+		meshdir="package://dual_arm_robot/meshes/gripper" suffix="r" 
+		gripper_rpy="-1.5708 -1.5708 -1.5708" gripper_xyz="0 0 0"/>
+
+	<joint name="tcp_r_joint" type="fixed">
+		<origin xyz="0.0 0.0 0.09" rpy="0.0 -1.5707963 -1.5707963" />
+		<parent link="gripper_base_link_r" />
+		<child link="tcp_r" />
+	</joint>
+	
+	<link name="tcp_r"/>
+
+</robot>

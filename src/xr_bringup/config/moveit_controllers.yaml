@@ -1,0 +1,51 @@
+# MoveIt uses this configuration for controller management
+
+# trajectory_execution:
+#   allowed_execution_duration_scaling: 1.2
+#   allowed_goal_duration_margin: 0.5
+#   allowed_start_tolerance: 0.02
+#   execution_duration_monitoring: false
+
+moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
+
+moveit_simple_controller_manager:
+  controller_names:
+    - left_arm_controller
+    - right_arm_controller
+    # - fold_elevator_controller
+
+  left_arm_controller:
+    type: FollowJointTrajectory
+    joints:
+      - arm_J1_l
+      - arm_J2_l
+      - arm_J3_l
+      - arm_J4_l
+      - arm_J5_l
+      - arm_J6_l
+      - arm_J7_l
+    action_ns: follow_joint_trajectory
+    default: true
+    
+  right_arm_controller:
+    type: FollowJointTrajectory
+    joints:
+      - arm_J1_r
+      - arm_J2_r
+      - arm_J3_r
+      - arm_J4_r
+      - arm_J5_r
+      - arm_J6_r
+      - arm_J7_r
+    action_ns: follow_joint_trajectory
+    default: true
+
+  # fold_elevator_controller:
+  #   type: FollowJointTrajectory
+  #   joints:
+  #     - joint1
+  #     - joint2
+  #     - joint3
+  #     - joint4
+  #   action_ns: follow_joint_trajectory
+  #   default: true

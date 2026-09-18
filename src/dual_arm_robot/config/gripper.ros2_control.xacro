@@ -9,7 +9,10 @@
                     <plugin>mock_components/GenericSystem</plugin>
                 </xacro:if>
                 <xacro:unless value="${is_sim}">
-                    <plugin>your_real_gripper_hardware/GripperHardwareInterface</plugin>
+                    <plugin>dual_arm_hardware_interface/LeftGripperHardwareInterface</plugin>
+                    <param name="config_prefix">$(arg config_prefix)</param>
+                    <param name="gripper_speed">500</param>
+                    <param name="gripper_force">500</param>
                 </xacro:unless>
             </hardware>
 

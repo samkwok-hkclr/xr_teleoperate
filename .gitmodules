@@ -1,0 +1,3 @@
+[submodule "src/dual_arm_v2_2_sdk"]
+	path = src/dual_arm_v2_2_sdk
+	url = https://github.com/samkwok-hkclr/dual_arm_v2_2_sdk

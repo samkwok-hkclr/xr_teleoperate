@@ -1,7 +1,6 @@
 
 import sys
 import numpy as np
-import asyncio
 from functools import partial
 
 from enum import Enum
@@ -45,21 +44,6 @@ CONST_LEFT_ARM_POSE = np.array([[1, 0, 0, -0.15],
                                 [0, 0, 1, -0.3],
                                 [0, 0, 0, 1]])
 
-# CONST_HEAD_POSE = np.array([[1, 0, 0, 0],
-#                             [0, 1, 0, 0],
-#                             [0, 0, 1, 0],
-#                             [0, 0, 0, 1]])
-
-# CONST_RIGHT_ARM_POSE = np.array([[1, 0, 0, 0.15],
-#                                  [0, 1, 0, -1.37],
-#                                  [0, 0, 1, -0.3],
-#                                  [0, 0, 0, 1]])
-
-# CONST_LEFT_ARM_POSE = np.array([[1, 0, 0, -0.15],
-#                                 [0, 1, 0, -1.37],
-#                                 [0, 0, 1, -0.3],
-#                                 [0, 0, 0, 1]])
-
 def safe_mat_update(prev_mat, mat):
     # Return previous matrix and False flag if the new matrix is non-singular (determinant ≠ 0).
     det = np.linalg.det(mat)
@@ -82,23 +66,23 @@ def get_Brobot_world_head_yaw_rot(Brobot_world_head_rot):
     Brobot_world_head_y_axis /= np.linalg.norm(Brobot_world_head_y_axis)
     return np.column_stack([Brobot_world_head_x_axis, Brobot_world_head_y_axis, Brobot_world_head_z_axis])
 
-def transform_Brobot_world_arm_to_head_then_waist(IPunitree_Brobot_world_arm, Brobot_world_head, arm_reference_mode):
-    IPunitree_Brobot_head_arm = IPunitree_Brobot_world_arm.copy()
+def transform_Brobot_world_arm_to_head_then_waist(Brobot_world_arm, Brobot_world_head, arm_reference_mode):
+    Brobot_head_arm = Brobot_world_arm.copy()
     # Transfer from WORLD to HEAD coordinate:
     # - "head_position": translation adjustment only.
     # - "head_yaw": left-multiply R_Brobot_world_head_yaw^T, ignoring pitch/roll.
     if arm_reference_mode == "head_yaw":
         R_Brobot_world_head_yaw = get_Brobot_world_head_yaw_rot(Brobot_world_head[:3, :3])
-        IPunitree_Brobot_head_arm[:3, :3] = R_Brobot_world_head_yaw.T @ IPunitree_Brobot_world_arm[:3, :3]
-        IPunitree_Brobot_head_arm[:3, 3] = R_Brobot_world_head_yaw.T @ (IPunitree_Brobot_world_arm[:3, 3] - Brobot_world_head[:3, 3])
+        Brobot_head_arm[:3, :3] = R_Brobot_world_head_yaw.T @ Brobot_world_arm[:3, :3]
+        Brobot_head_arm[:3, 3] = R_Brobot_world_head_yaw.T @ (Brobot_world_arm[:3, 3] - Brobot_world_head[:3, 3])
     else:
-        IPunitree_Brobot_head_arm[:3, 3] = IPunitree_Brobot_world_arm[:3, 3] - Brobot_world_head[:3, 3]
+        Brobot_head_arm[:3, 3] = Brobot_world_arm[:3, 3] - Brobot_world_head[:3, 3]
 
-    # Translate the origin of IPunitree_Brobot_head_arm from HEAD to WAIST.
-    IPunitree_Brobot_waist_arm = IPunitree_Brobot_head_arm.copy()
-    IPunitree_Brobot_waist_arm[0, 3] += 0.15
-    IPunitree_Brobot_waist_arm[2, 3] += 0.45
-    return IPunitree_Brobot_waist_arm
+    # Translate the origin of Brobot_head_arm from HEAD to WAIST.
+    Brobot_waist_arm = Brobot_head_arm.copy()
+    Brobot_waist_arm[0, 3] += 0.15
+    Brobot_waist_arm[2, 3] += 0.45
+    return Brobot_waist_arm
 
 class ARM(Enum):
     LEFT = 1
@@ -108,7 +92,7 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
     def __init__(self):
         super().__init__('xr_transceiver')
         self.declare_parameter('pose_frequency', 50.0)
-        self.declare_parameter('button_frequency', 10.0)
+        self.declare_parameter('button_frequency', 20.0)
 
         # Initialize properties to None/Empty so they exist
         self.head_pose_pub_ = None
@@ -184,7 +168,7 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
     def on_cleanup(self, state: State) -> TransitionCallbackReturn:
         self.get_logger().info("Cleaning up...")
         
-        # Destroy publishers
+        # Destroy publishers and subscriptions
         self.destroy_publisher(self.head_pose_pub_)
         for arm in ARM:
             self.destroy_publisher(self.pose_pub_[arm])
@@ -193,6 +177,8 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
             self.destroy_publisher(self.ctrl_thumbstick_pub_[arm])
             self.destroy_publisher(self.ctrl_a_btn_pub_[arm])
             self.destroy_publisher(self.ctrl_b_btn_pub_[arm])
+            
+            self.destroy_subscription(self.warn_sub_[arm])
             
         self.pose_pub_.clear()
         self.ctrl_trigger_pub_.clear()
@@ -213,25 +199,40 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
         self.get_logger().info("Shutdown done...")
         return TransitionCallbackReturn.SUCCESS
 
+    def is_active(self) -> bool:
+        return self.current_state[1] == State.PRIMARY_STATE_ACTIVE
+
+    def is_connected(self) -> bool:
+        return self.vuer_wrapper.client_connected
+
+    def is_data_ready(self) -> bool:
+        return self.vuer_wrapper.motion_data_ready
+
+    def is_ready_to_publish(self) -> bool:
+        return self.is_connected() and self.is_data_ready()
+
     def warn_cb(self, msg: Bool, arm: ARM):
+        if not self.is_active:
+            return
+        
         if arm == ARM.LEFT:
             with self.vuer_wrapper.left_warn_shared.get_lock():
                 self.vuer_wrapper.left_warn_shared.value = msg.data
         elif arm == ARM.RIGHT:
             with self.vuer_wrapper.right_warn_shared.get_lock():
                 self.vuer_wrapper.right_warn_shared.value = msg.data
-                
+
         if msg and msg.data:
-            self.get_logger().debug(f"{arm.name.lower()} warn!")
+            self.get_logger().debug(f"{arm.name.lower()} warning!")
 
     def pose_timer_cb(self):
-        if not self.vuer_wrapper.client_connected or not self.vuer_wrapper.motion_data_ready:
+        if not self.is_ready_to_publish():
             return
 
-        Bxr_world_head, head_pose_is_valid = safe_mat_update(CONST_HEAD_POSE, self.vuer_wrapper.head_pose)
+        Bxr_world_head, _ = safe_mat_update(CONST_HEAD_POSE, self.vuer_wrapper.head_pose)
 
-        left_Bxr_world_arm, left_arm_is_valid = safe_mat_update(CONST_LEFT_ARM_POSE, self.vuer_wrapper.left_arm_pose)
-        right_Bxr_world_arm, right_arm_is_valid = safe_mat_update(CONST_RIGHT_ARM_POSE, self.vuer_wrapper.right_arm_pose)
+        left_Bxr_world_arm, _ = safe_mat_update(CONST_LEFT_ARM_POSE, self.vuer_wrapper.left_arm_pose)
+        right_Bxr_world_arm, _ = safe_mat_update(CONST_RIGHT_ARM_POSE, self.vuer_wrapper.right_arm_pose)
 
         Brobot_world_head = T_ROBOT_OPENXR @ Bxr_world_head @ T_OPENXR_ROBOT
         left_Brobot_world_arm  = T_ROBOT_OPENXR @ left_Bxr_world_arm @ T_OPENXR_ROBOT
@@ -253,7 +254,7 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
         self.pose_pub_[ARM.RIGHT].publish(right_pose)
 
     def btn_timer_cb(self):
-        if not self.vuer_wrapper.client_connected or not self.vuer_wrapper.motion_data_ready:
+        if not self.is_ready_to_publish():
             return
 
         now = self.get_clock().now().to_msg()
@@ -263,27 +264,37 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
             side = arm.name.lower()
             # Dynamically fetch wrapper properties using getattr
             self.ctrl_trigger_pub_[arm].publish(
-                self._get_btn_str(getattr(wrapper, f"{side}_ctrl_trigger"), 
-                getattr(wrapper, f"{side}_ctrl_triggerValue"),
-                now)
+                self._get_btn_str(getattr(
+                    wrapper, f"{side}_ctrl_trigger"), 
+                    getattr(wrapper, f"{side}_ctrl_triggerValue"),
+                    now
+                )
             )
             self.ctrl_squeeze_pub_[arm].publish(
-                self._get_btn_str(getattr(wrapper, f"{side}_ctrl_squeeze"),
-                getattr(wrapper, f"{side}_ctrl_squeezeValue"),
-                now)
+                self._get_btn_str(getattr(
+                    wrapper, f"{side}_ctrl_squeeze"),
+                    getattr(wrapper, f"{side}_ctrl_squeezeValue"),
+                    now
+                )
             )
             self.ctrl_thumbstick_pub_[arm].publish(
-                self._get_btn_thumbstick(getattr(wrapper, f"{side}_ctrl_thumbstick"), 
-                getattr(wrapper, f"{side}_ctrl_thumbstickValue"),
-                now)
+                self._get_btn_thumbstick(
+                    getattr(wrapper, f"{side}_ctrl_thumbstick"), 
+                    getattr(wrapper, f"{side}_ctrl_thumbstickValue"),
+                    now
+                )
             )
             self.ctrl_a_btn_pub_[arm].publish(
-                self._get_btn(getattr(wrapper, f"{side}_ctrl_aButton"),
-                now)
+                self._get_btn(
+                    getattr(wrapper, f"{side}_ctrl_aButton"),
+                    now
+                )
             )
             self.ctrl_b_btn_pub_[arm].publish(
-                self._get_btn(getattr(wrapper, f"{side}_ctrl_bButton"),
-                now)
+                self._get_btn(
+                    getattr(wrapper, f"{side}_ctrl_bButton"),
+                    now
+                )
             )
 
     def _get_pose(self, pose_matrix: np.ndarray, frame_id: str) -> PoseStamped:

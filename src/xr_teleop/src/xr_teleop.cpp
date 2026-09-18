@@ -8,6 +8,8 @@
 #include <lifecycle_msgs/msg/state.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 
+#include <rcpputils/join.hpp>
+
 #include <std_msgs/msg/bool.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -21,6 +23,9 @@
 #include "xr_teleop_msgs/msg/button.hpp"
 #include "xr_teleop/arm_types.hpp"
 
+namespace xr_teleop
+{
+
 using std::placeholders::_1;
 using std::placeholders::_2;
 
@@ -33,6 +38,10 @@ public:
     declare_parameter<double>("x_scale_factor", 1.0);
     declare_parameter<double>("y_scale_factor", 1.0);
     declare_parameter<double>("z_scale_factor", 1.0);
+    declare_parameter<double>("target_pose_max_age_s", 0.5);
+    declare_parameter<std::vector<std::string>>("xr_reference_data", std::vector<std::string>{});
+    declare_parameter<std::vector<std::string>>("tcp", std::vector<std::string>{});
+    declare_parameter<std::vector<std::string>>("k_sources", std::vector<std::string>{});
     
     RCLCPP_INFO(this->get_logger(), "XrTeleop node instantiated.");
   }
@@ -41,6 +50,55 @@ public:
 
   CallbackReturn on_configure(const rclcpp_lifecycle::State &) override
   {
+    max_age_s_ = get_parameter("target_pose_max_age_s").as_double();
+
+    // Pull every parameter up front so all failures can report actual values.
+    const auto tcp           = get_parameter("tcp").as_string_array();
+    const auto k_sources     = get_parameter("k_sources").as_string_array();
+    const auto xr_ref_data   = get_parameter("xr_reference_data").as_string_array();
+
+    // --- tcp / k_sources: non-empty ---
+    if (tcp.empty())
+    {
+      RCLCPP_FATAL(get_logger(),
+        "Parameter 'tcp' is empty. Expected at least 2 entries (one per arm). "
+        "Got %zu.", tcp.size());
+      return CallbackReturn::FAILURE;
+    }
+    if (k_sources.empty())
+    {
+      RCLCPP_FATAL(get_logger(),
+        "Parameter 'k_sources' is empty. Expected at least 2 entries (one per arm). "
+        "Got %zu.", k_sources.size());
+      return CallbackReturn::FAILURE;
+    }
+
+    // --- tcp / k_sources: exactly 2 ---
+    if (tcp.size() < 2)
+    {
+      RCLCPP_FATAL(get_logger(),
+        "Parameter 'tcp' has %zu entries but this node manages a dual-arm setup "
+        "and requires 2. Values: [%s].",
+        tcp.size(), rcpputils::join(tcp, ", ").c_str());
+      return CallbackReturn::FAILURE;
+    }
+    if (k_sources.size() < 2)
+    {
+      RCLCPP_FATAL(get_logger(),
+        "Parameter 'k_sources' has %zu entries but this node manages a dual-arm setup "
+        "and requires 2. Values: [%s].",
+        k_sources.size(), rcpputils::join(k_sources, ", ").c_str());
+      return CallbackReturn::FAILURE;
+    }
+    if (xr_ref_data.size() < 8)
+    {
+      RCLCPP_FATAL(get_logger(),
+        "Parameter 'xr_reference_data' has %zu entries but requires at least 8 "
+        "(parent_frame, child_frame, x, y, z, roll, pitch, yaw). Values: [%s].",
+        xr_ref_data.size(), rcpputils::join(xr_ref_data, ", ").c_str());
+      return CallbackReturn::FAILURE;
+    }
+
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -60,6 +118,9 @@ public:
       press_start_time_[arm] = this->now();
       was_pressed_[arm] = false;
       enabled_[arm] = false;
+
+      tcp_[arm] = tcp[i - 1];
+      k_sources_[arm] = k_sources[i - 1];
 
       target_pose_pub_[arm] = this->create_publisher<geometry_msgs::msg::PoseStamped>("/" + side + "_arm/target_pose", rclcpp::SensorDataQoS());
       ready_pub_[arm] = this->create_publisher<std_msgs::msg::Bool>("/" + side + "_arm/ready", 1);
@@ -81,7 +142,7 @@ public:
 
     // Create a 50Hz timer, but keep it cancelled until activated
     tf_timer_ = this->create_wall_timer(
-      std::chrono::milliseconds(20), 
+      std::chrono::milliseconds(10), 
       std::bind(&XrTeleop::tf_timer_cb, this));
     tf_timer_->cancel();
 
@@ -106,6 +167,7 @@ public:
     return CallbackReturn::SUCCESS;
   }
 
+  // I cannot call ros2 lifecycle set /xr_teleop deactivate. why?
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State &) override
   {
     // Pause operations
@@ -169,35 +231,83 @@ private:
 
   void tf_timer_cb()
   {
-    auto left_tf_opt = get_tf("base_link", "left_hand_frame");
-    if (left_tf_opt.has_value())
+    if (!is_active())
+      return;
+
+    const rclcpp::Time now = this->get_clock()->now();
+    
+    for (const auto & [arm, frame] : k_sources_)
     {
-      const geometry_msgs::msg::TransformStamped& left_tf = left_tf_opt.value();
+      if (frame.empty())
+      {
+        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000, "traget frame is empty");
+        continue;
+      }
+      auto tf_opt = get_tf("base_link", frame);
+
+      if (!tf_opt.has_value())
+        continue;
+
+      const auto & tf = tf_opt.value();
+
+      // Freshness
+      const double age_s = (now - tf.header.stamp).seconds();
+      if (age_s < 0.0 || age_s > max_age_s_)
+      {
+        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+          "Dropping %s target: TF age %.3f s", frame.c_str(), age_s);
+        continue;
+      }
+
+      // Validity
+      // if (!is_transform_valid(tf.transform))
+      // {
+      //   RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+      //     "Dropping %s target: invalid transform", frame.c_str());
+      //   continue;
+      // }
+
+      // Build and publish (unique_ptr -> move overload -> IPC-friendly)
+      auto msg = std::make_unique<geometry_msgs::msg::PoseStamped>();
+      msg->header.stamp    = tf.header.stamp;
+      msg->header.frame_id = "base_link";
+      msg->pose.position.x = tf.transform.translation.x;
+      msg->pose.position.y = tf.transform.translation.y;
+      msg->pose.position.z = tf.transform.translation.z;
+      msg->pose.orientation = tf.transform.rotation;
+
+      target_pose_pub_[arm]->publish(std::move(msg));
+    }
+
+    // auto left_tf_opt = get_tf("base_link", "left_hand_frame");
+    // if (left_tf_opt.has_value())
+    // {
+    //   const geometry_msgs::msg::TransformStamped& left_tf = left_tf_opt.value();
       
-      geometry_msgs::msg::PoseStamped left_pose;
-      left_pose.header.stamp = this->get_clock()->now();
-      left_pose.header.frame_id = "base_link";
-      left_pose.pose.position.x = left_tf.transform.translation.x;
-      left_pose.pose.position.y = left_tf.transform.translation.y;
-      left_pose.pose.position.z = left_tf.transform.translation.z;
-      left_pose.pose.orientation = left_tf.transform.rotation;
-      target_pose_pub_[Arm::LEFT]->publish(left_pose);
-    }
+    //   auto left_pose = std::make_unique<geometry_msgs::msg::PoseStamped>();
+    //   left_pose->header.stamp = this->get_clock()->now();
+    //   left_pose->header.frame_id = "base_link";
+    //   left_pose->pose.position.x = left_tf.transform.translation.x;
+    //   left_pose->pose.position.y = left_tf.transform.translation.y;
+    //   left_pose->pose.position.z = left_tf.transform.translation.z;
+    //   left_pose->pose.orientation = left_tf.transform.rotation;
+    //   target_pose_pub_[Arm::LEFT]->publish(std::move(left_pose));
+    // }
 
-    auto right_tf_opt = get_tf("base_link", "right_hand_frame");
-    if (right_tf_opt.has_value())
-    {
-      const geometry_msgs::msg::TransformStamped& right_tf = right_tf_opt.value();
+    // auto right_tf_opt = get_tf("base_link", "right_hand_frame");
+    // if (right_tf_opt.has_value())
+    // {
+    //   const geometry_msgs::msg::TransformStamped& right_tf = right_tf_opt.value();
 
-      geometry_msgs::msg::PoseStamped right_pose;
-      right_pose.header.stamp = this->get_clock()->now();
-      right_pose.header.frame_id = "base_link";
-      right_pose.pose.position.x = right_tf.transform.translation.x;
-      right_pose.pose.position.y = right_tf.transform.translation.y;
-      right_pose.pose.position.z = right_tf.transform.translation.z;
-      right_pose.pose.orientation = right_tf.transform.rotation;
-      target_pose_pub_[Arm::RIGHT]->publish(right_pose);
-    }
+    //   auto right_pose = std::make_unique<geometry_msgs::msg::PoseStamped>();
+    //   right_pose->header.stamp = this->get_clock()->now();
+    //   right_pose->header.frame_id = "base_link";
+    //   right_pose->pose.position.x = right_tf.transform.translation.x;
+    //   right_pose->pose.position.y = right_tf.transform.translation.y;
+    //   right_pose->pose.position.z = right_tf.transform.translation.z;
+    //   right_pose->pose.orientation = right_tf.transform.rotation;
+    //   target_pose_pub_[Arm::RIGHT]->publish(right_pose);
+    // }
   }
 
   std::optional<geometry_msgs::msg::TransformStamped> get_tf(
@@ -208,7 +318,7 @@ private:
 
     try 
     {
-      tf_stamped = tf_buffer_->lookupTransform(to_frame, from_frame, tf2::TimePointZero, tf2::durationFromSec(0.1));
+      tf_stamped = tf_buffer_->lookupTransform(to_frame, from_frame, tf2::TimePointZero);
     } 
     catch (tf2::TransformException & ex) 
     {
@@ -228,8 +338,8 @@ private:
 
   void head_pose_cb(const geometry_msgs::msg::PoseStamped::SharedPtr)
   {
-    if (!is_active()) 
-      return;
+    // if (!is_active()) 
+    //   return;
   }
 
   void arm_pose_cb(const geometry_msgs::msg::PoseStamped::SharedPtr msg, const Arm arm, const std::string& frame)
@@ -250,7 +360,7 @@ private:
     {
       t_begin_[arm] = t_end;
 
-      const std::string ee_frame = tcp.at(arm); 
+      const std::string ee_frame = tcp_.at(arm); 
       auto t_zero_opt = get_tf("base_link", ee_frame);
 
       if (t_zero_opt.has_value()) 
@@ -337,19 +447,28 @@ private:
   void broadcast_static_tf()
   {
     geometry_msgs::msg::TransformStamped t;
+    std::vector<std::string> xr_reference_data = this->get_parameter("xr_reference_data").as_string_array();
 
     t.header.stamp = this->get_clock()->now();
-    t.header.frame_id = "arm_base_link_l";
-    t.child_frame_id = "xr_base_link";
+    t.header.frame_id = xr_reference_data[0];
+    t.child_frame_id = xr_reference_data[1];
 
-    t.transform.translation.x = 0.07;
-    t.transform.translation.y = 0.0;
-    t.transform.translation.z = 0.16;
+    t.transform.translation.x = std::stof(xr_reference_data[2]);
+    t.transform.translation.y = std::stof(xr_reference_data[3]);
+    t.transform.translation.z = std::stof(xr_reference_data[4]);
 
-    t.transform.rotation.x = 0.0;
-    t.transform.rotation.y = 0.0;
-    t.transform.rotation.z = 0.0;
-    t.transform.rotation.w = 1.0;
+    // Convert string to float for RPY and convert to quaternion
+    double roll = std::stod(xr_reference_data[5]);
+    double pitch = std::stod(xr_reference_data[6]);
+    double yaw = std::stod(xr_reference_data[7]);
+
+    tf2::Quaternion q;
+    q.setRPY(roll, pitch, yaw);
+
+    t.transform.rotation.x = q.x();
+    t.transform.rotation.y = q.y();
+    t.transform.rotation.z = q.z();
+    t.transform.rotation.w = q.w();
 
     tf_static_broadcaster_->sendTransform(t);
     RCLCPP_INFO(this->get_logger(), "Published static transform from %s to %s", 
@@ -365,6 +484,7 @@ private:
   }
 
   // Member variables
+  double max_age_s_;
   std::unordered_map<Arm, bool> is_initial_recorded_;
   std::unordered_map<Arm, tf2::Transform> t_begin_;
   std::unordered_map<Arm, tf2::Transform> t_zero_;
@@ -387,11 +507,11 @@ private:
   std::unordered_map<Arm, rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr> arm_pose_sub_;
   std::unordered_map<Arm, rclcpp::Subscription<xr_teleop_msgs::msg::Button>::SharedPtr> btn_a_sub_;
 
-  const std::unordered_map<Arm, std::string> tcp = { 
-    { Arm::LEFT , "tcp_l" }, 
-    { Arm::RIGHT , "tcp_r"} 
-  };
+  std::unordered_map<Arm, std::string> tcp_;
+  std::unordered_map<Arm, std::string> k_sources_;
   static constexpr double BUTTON_HOLD_DURATION = 0.5;
 };
 
-RCLCPP_COMPONENTS_REGISTER_NODE(XrTeleop)
+} // namespace xr_teleop
+
+RCLCPP_COMPONENTS_REGISTER_NODE(xr_teleop::XrTeleop)

@@ -7,9 +7,12 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
+
+find_package(rcpputils REQUIRED)
 
 # Message packages
 find_package(std_msgs REQUIRED)
@@ -62,7 +65,7 @@ ament_target_dependencies(pose_tracker_component
 
 # Register the component
 rclcpp_components_register_node(pose_tracker_component
-  PLUGIN "PoseTrackerWrapper"
+  PLUGIN "pose_tracker::PoseTrackerWrapper"
   EXECUTABLE pose_tracker
 )
 
@@ -74,6 +77,7 @@ ament_target_dependencies(xr_teleop_component
   rclcpp
   rclcpp_lifecycle
   rclcpp_components
+  rcpputils
   lifecycle_msgs
   std_msgs
   geometry_msgs
@@ -84,18 +88,19 @@ ament_target_dependencies(xr_teleop_component
 )
 
 rclcpp_components_register_node(xr_teleop_component
-  PLUGIN "XrTeleop"
+  PLUGIN "xr_teleop::XrTeleop"
   EXECUTABLE xr_teleop
 )
 
 # -----------------------------------------------------------
 # Lifecycle Manager Executable
 # -----------------------------------------------------------
-add_executable(lifecycle_manager src/lifecycle_manager.cpp)
-ament_target_dependencies(lifecycle_manager
+add_executable(teleop_lifecycle_manager src/teleop_lifecycle_manager.cpp)
+ament_target_dependencies(teleop_lifecycle_manager
   rclcpp
+  rclcpp_action
   lifecycle_msgs
-  std_srvs
+  xr_teleop_msgs
 )
 
 # -----------------------------------------------------------
@@ -111,9 +116,8 @@ install(TARGETS
   RUNTIME DESTINATION bin
 )
 
-
 install(TARGETS
-  lifecycle_manager
+  teleop_lifecycle_manager
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -20,6 +20,14 @@ set(msg_files
   msg/ButtonThumbstick.msg
 )
 
+set(srv_files
+)
+
+set(action_files
+  action/StartTeleop.action
+  action/StopTeleop.action
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
   ${srv_files}

@@ -53,70 +53,24 @@ RUN chmod +x /entrypoint.sh
 RUN dos2unix /entrypoint.sh 
 ENTRYPOINT [ "dumb-init", "--", "/entrypoint.sh" ]
 
-# ========== livox_lidar_img ========== 
-FROM ros2_img AS livox_lidar_img
+# ========== xr_teleop_img ========== 
+FROM ros2_img AS xr_teleop_img
 
-ENV WS_NAME=golf_nav
-RUN echo '. /root/${WS_NAME}/install/setup.bash' >> ~/.bashrc
+RUN mkdir /cert
+WORKDIR /cert
+ENV CERT_FILE=cert.pem
+ENV KEY_FILE=key.pem
+ENV XR_TELEOP_CERT=/cert/${CERT_FILE}
+ENV XR_TELEOP_KEY=/cert/${KEY_FILE}
 
-RUN apt-get install -y --no-install-recommends git
+RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ${XR_TELEOP_KEY} -out ${XR_TELEOP_CERT}
 
-# Build and install Livox SDK
-WORKDIR /
-ENV LIVOX_SDK=Livox-SDK2
-RUN git clone https://github.com/Livox-SDK/Livox-SDK2.git ${LIVOX_SDK}
-RUN mkdir /${LIVOX_SDK}/build
-WORKDIR /${LIVOX_SDK}/build
-RUN cmake -DCMAKE_BUILD_TYPE=Release .. && make -j && make install
-RUN rm -rf /${LIVOX_SDK}
-
-# Build Livox ROS2 driver
-RUN mkdir -p /root/${WS_NAME}/src
-WORKDIR /root/${WS_NAME}/src
-
-ENV LIVOX_ROS_DRVIER=livox_ros_driver2
-RUN git clone https://github.com/Livox-SDK/livox_ros_driver2 ${LIVOX_ROS_DRVIER}
-WORKDIR /root/${WS_NAME}/src/${LIVOX_ROS_DRVIER}
-RUN cp -f package_ROS2.xml package.xml
-RUN cp -rf launch_ROS2/ launch/
-WORKDIR /root/${WS_NAME}
-
-RUN apt install -y --no-install-recommends iputils-ping
-RUN rosdep install --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} -r -y
-RUN rm -rf /var/lib/apt/lists/*
-
-ENV ROS_EDITION=ROS2
-ENV DISTRO_ROS=humble
-
-WORKDIR /root/${WS_NAME}
-COPY ./src/lidar_bringup ./src/lidar_bringup
-
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build --cmake-args \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DROS_EDITION=${ROS_EDITION} \
-    -DDISTRO_ROS=${DISTRO_ROS} 
-
-RUN rm -rf ./src 
-
-# ========== golf_nav_img ========== 
-FROM ros2_img AS golf_nav_base_img
-
-# RUN pip install numba open3d
-# RUN pip install --upgrade coverage scipy
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends libgeographic-dev libgl1
-
-FROM golf_nav_base_img AS golf_nav_img
-
-VOLUME /config
-ENV WS_NAME=golf_nav
+ENV WS_NAME=xr_teleoperate
 RUN echo '. /root/${WS_NAME}/install/setup.bash' >> ~/.bashrc
 
 RUN mkdir -p /root/${WS_NAME}/src
-
 WORKDIR /root/${WS_NAME}
-
-COPY --exclude=golf_nav_simulation --exclude=nav_perception --exclude=lidar_bringup ./src ./src
+COPY ./src ./src
 
 RUN rosdep install --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} -r -y
 RUN rm -rf /var/lib/apt/lists/*

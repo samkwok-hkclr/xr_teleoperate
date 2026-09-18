@@ -40,8 +40,30 @@ class VuerWrapper:
 
         self.display_fps = 60
 
-        cert_file = "/home/hkclr/.config/xr_teleoperate/cert.pem"
-        key_file = "/home/hkclr/.config/xr_teleoperate/key.pem"
+        cert_file = "/home/hkclr/xr_teleop/cert/cert.pem"
+        key_file = "/home/hkclr/xr_teleop/cert/key.pem"
+
+        # env_cert = os.getenv("XR_TELEOP_CERT")
+        # env_key = os.getenv("XR_TELEOP_KEY")
+        # if cert_file is None or key_file is None:
+        #     # 1.Try environment variables
+        #     if env_cert and env_key:
+        #         cert_file = cert_file or env_cert
+        #         key_file = key_file or env_key
+        #     else:
+        #         # 2.Try ~/.config/xr_teleoperate/
+        #         user_conf_dir = Path.home() / ".config" / "xr_teleoperate"
+        #         cert_path_user = user_conf_dir / "cert.pem"
+        #         key_path_user = user_conf_dir / "key.pem"
+
+        #         if cert_path_user.exists() and key_path_user.exists():
+        #             cert_file = cert_file or str(cert_path_user)
+        #             key_file = key_file or str(key_path_user)
+        #         else:
+        #             # 3.Fallback to package root (current logic)
+        #             current_module_dir = Path(__file__).resolve().parent.parent.parent
+        #             cert_file = cert_file or str(current_module_dir / "cert.pem")
+        #             key_file = key_file or str(current_module_dir / "key.pem")
 
         self.vuer = Vuer(host="0.0.0.0", cert=cert_file, key=key_file, queries=dict(grid=False), queue_len=3)
         self.vuer.add_handler("CAMERA_MOVE")(self.on_cam_move)
@@ -154,13 +176,13 @@ class VuerWrapper:
             if self.left_warn:
                 await session.send(
                     HapticActuatorPulse(
-                        left={"strength": 0.4, "duration": 20},
+                        left={"strength": 0.1, "duration": 10},
                     )
                 )
             if self.right_warn:
                 await session.send(
                     HapticActuatorPulse(
-                        right={"strength": 0.4, "duration": 20},
+                        right={"strength": 0.1, "duration": 10},
                     )
                 )
             with self.motion_data_ready_shared.get_lock():

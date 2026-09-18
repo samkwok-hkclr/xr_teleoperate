@@ -3,7 +3,9 @@
 
 	<!-- Declare launch arguments -->
 	<xacro:arg name="left_arm_sim" default="true" />
+	<xacro:arg name="left_gripper_sim" default="true" />
 	<xacro:arg name="right_arm_sim" default="true" />
+	<xacro:arg name="right_gripper_sim" default="true" />
 
 	<mujoco>
 		<compiler meshdir="meshes/visual/" balanceinertia="true" discardvisual="false" />
@@ -215,7 +217,8 @@
 	<xacro:realman_arm_ros2_control 
 		sim_left="$(arg left_arm_sim)" 
 		sim_right="$(arg right_arm_sim)" 
-		namespace="arm" />
+		namespace="arm" 
+		config_prefix="$(arg config_prefix)" />
 
 	<!-- Left Hand -->
 	<joint name="hand_J0_l" type="fixed">
@@ -234,7 +237,7 @@
 
 	<xacro:inspire_hand_l_ros2_control 
 		name="LeftHand" 
-		is_sim="$(arg left_arm_sim)" />
+		is_sim="$(arg left_gripper_sim)" />
 
 	<xacro:inspire_hand_l_macro base_link="hand_base_link_l" 
 				meshdir="package://dual_arm_robot/meshes/inspire_hand_l" />
@@ -243,7 +246,7 @@
 	<xacro:gripper_ros2_control 
 		name="RightGripper" 
 		prefix="gripper_" 
-		is_sim="$(arg right_arm_sim)" />
+		is_sim="$(arg right_gripper_sim)" />
 
 	<xacro:gripper_macro end_effector_link="arm_end_effector_r" prefix="arm"
 		meshdir="package://dual_arm_robot/meshes/gripper" suffix="r" 

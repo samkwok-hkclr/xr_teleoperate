@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<library path="dual_arm_hardware_interface">
+
+  <!-- ============================================================ -->
+  <!-- Joint group components                                        -->
+  <!-- ============================================================ -->
+
+  <class name="dual_arm_hardware_interface/LeftArmHardwareInterface"
+         type="dual_arm_hardware_interface::LeftArmHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Left arm hardware interface.
+      Drives dual_arm_v2_2_sdk::Group::LEFT_ARM via ControlApi::move_joint().
+    </description>
+  </class>
+
+  <class name="dual_arm_hardware_interface/RightArmHardwareInterface"
+         type="dual_arm_hardware_interface::RightArmHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Right arm hardware interface.
+      Drives dual_arm_v2_2_sdk::Group::RIGHT_ARM via ControlApi::move_joint().
+    </description>
+  </class>
+
+  <class name="dual_arm_hardware_interface/HeadHardwareInterface"
+         type="dual_arm_hardware_interface::HeadHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Head (pan/tilt) hardware interface.
+      Drives dual_arm_v2_2_sdk::Group::HEAD via ControlApi::move_joint().
+    </description>
+  </class>
+
+  <class name="dual_arm_hardware_interface/ElevatorHardwareInterface"
+         type="dual_arm_hardware_interface::ElevatorHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Elevator (vertical lift) hardware interface.
+      Drives dual_arm_v2_2_sdk::Group::ELEVATOR via ControlApi::move_joint().
+    </description>
+  </class>
+
+  <!-- ============================================================ -->
+  <!-- Gripper components                                            -->
+  <!-- ============================================================ -->
+
+  <class name="dual_arm_hardware_interface/LeftGripperHardwareInterface"
+         type="dual_arm_hardware_interface::LeftGripperHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Left gripper hardware interface.
+      Drives "gripperL" via ControlApi::set_gripper_position(Group::LEFT_ARM, ...).
+    </description>
+  </class>
+
+  <class name="dual_arm_hardware_interface/RightGripperHardwareInterface"
+         type="dual_arm_hardware_interface::RightGripperHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Right gripper hardware interface.
+      Drives "gripperR" via ControlApi::set_gripper_position(Group::RIGHT_ARM, ...).
+    </description>
+  </class>
+
+</library>

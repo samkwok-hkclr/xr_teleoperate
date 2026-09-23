@@ -213,9 +213,9 @@ hardware_interface::return_type JointGroupBase::read(
       }
     }
 
-    if (++debug_tick_ >= debug_every_n_)
+    if (++debug_read_tick_ >= debug_every_n_)
     {
-      debug_tick_ = 0;
+      debug_read_tick_ = 0;
 
       std::ostringstream oss;
       oss << std::fixed << std::setprecision(4) << "[";
@@ -247,10 +247,10 @@ hardware_interface::return_type JointGroupBase::read(
   }
 
   // ---- effort：SDK 暂不提供，统一置 0 ----
-  for (size_t idx : arm_indices_)
-  {
-    hw_effort_states_[idx] = 0.0;
-  }
+  // for (size_t idx : arm_indices_)
+  // {
+  //   hw_effort_states_[idx] = 0.0;
+  // }
 
   // ---- enable / error 状态（仅内部诊断用） ----
   {
@@ -274,41 +274,57 @@ hardware_interface::return_type JointGroupBase::read(
 // write
 // ============================================================
 hardware_interface::return_type JointGroupBase::write(
-    const rclcpp::Time& /* time */, const rclcpp::Duration& /* period */)
+  const rclcpp::Time& /* time */, const rclcpp::Duration& /* period */)
 {
-  if (!api_ || !is_active())
-  {
-    // RCLCPP_INFO_THROTTLE(logger_, this->get_logger(), *this->get_clock(),)
-    return hardware_interface::return_type::OK;
-  }
+  // if (!api_ || !is_active())
+  // {
+  //   return hardware_interface::return_type::OK;
+  // }
 
-  std::lock_guard<std::mutex> lock(mutex_);
+  // std::lock_guard<std::mutex> lock(mutex_);
 
-  for (size_t k = 0; k < arm_indices_.size(); ++k)
-  {
-    cmd_buffer_[k] = static_cast<float>(hw_position_commands_[arm_indices_[k]]);
-  }
+  // for (size_t k = 0; k < arm_indices_.size(); ++k)
+  // {
+  //   cmd_buffer_[k] = static_cast<float>(hw_position_commands_[arm_indices_[k]]);
+  // }
 
-  // follow=true     → 非阻塞，适配 100 Hz controller_manager 周期
-  // trajectory_mode=0 → Direct 插值
-  const RetCode ret = api_->move_joint(group(), cmd_buffer_,
-                                      /*follow=*/true,
-                                      /*trajectory_mode=*/0,
-                                      /*radio=*/0);
+  // const RetCode ret = api_->move_joint(group(), cmd_buffer_,
+  //                                     /*follow=*/true,
+  //                                     /*trajectory_mode=*/2,
+  //                                     /*radio=*/999);
 
-  if (ret != RetCode::SUCCESS)
-  {
-    ++error_streak_;
-    if (error_streak_ == 1 || error_streak_ % 100 == 0)
-    {
-      RCLCPP_WARN(logger_, "[%s] move_joint failed: %d (streak=%d)",
-                  component_name(), static_cast<int>(ret), error_streak_);
-    }
-  }
-  else
-  {
-    error_streak_ = 0;
-  }
+  // if (++debug_write_tick_ >= debug_every_n_)
+  // {
+  //   debug_write_tick_ = 0;
+
+  //   std::ostringstream oss;
+  //   oss << std::fixed << std::setprecision(4) << "[";
+  //   for (size_t k = 0; k < cmd_buffer_.size(); ++k)
+  //   {
+  //     oss << cmd_buffer_[k];
+  //     if (k + 1 < cmd_buffer_.size()) oss << ", ";
+  //   }
+  //   oss << "]";
+
+  //   RCLCPP_INFO(logger_, "[%s] write: ret=%d, size=%zu/%zu, pos=%s",
+  //               component_name(), static_cast<int>(ret),
+  //               cmd_buffer_.size(), arm_indices_.size(),
+  //               oss.str().c_str());
+  // }
+
+  // if (ret != RetCode::SUCCESS)
+  // {
+  //   ++error_streak_;
+  //   if (error_streak_ == 1 || error_streak_ % 100 == 0)
+  //   {
+  //     RCLCPP_WARN(logger_, "[%s] move_joint failed: %d (streak=%d)",
+  //                 component_name(), static_cast<int>(ret), error_streak_);
+  //   }
+  // }
+  // else
+  // {
+  //   error_streak_ = 0;
+  // }
 
   return hardware_interface::return_type::OK;
 }

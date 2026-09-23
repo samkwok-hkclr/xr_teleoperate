@@ -1,111 +1,144 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="realman_arm_ros2_control" params="sim_left sim_right namespace">
-    <ros2_control name="right_arm" type="system">
+
+  <!-- ============================================================
+       Dual-arm (left + right) combined ros2_control block.
+
+       Why combined:
+         The SDK uses a single 100 Hz UDP command channel. Every
+         ControlApi::move_joint(group, ...) rewrites the JointCmd array
+         for the WHOLE robot, filling non-selected arms with their
+         current feedback. If left and right arms are separate
+         SystemInterface instances, controller_manager calls write()
+         twice per cycle → two UDP packets → rt_control drops one and
+         the other arm gets frozen at its current position.
+         Combining into ONE SystemInterface ensures one packet per cycle
+         containing targets for every joint (left + head + right).
+
+       Params:
+         sim_left      : "true" / "false" — left arm simulation
+         sim_right     : "true" / "false" — right arm simulation
+         config_prefix : directory containing config.yaml
+         namespace     : optional, kept for compatibility with the
+                         caller's existing macro signature
+       ============================================================ -->
+  <xacro:macro name="realman_arm_ros2_control"
+               params="sim_left sim_right config_prefix namespace:=''">
+
+    <ros2_control name="dual_arms" type="system">
+
       <hardware>
-        <xacro:if value="${sim_right}">
+        <!-- Both sides simulated → plain mock passthrough -->
+        <xacro:if value="${sim_left == 'true' and sim_right == 'true'}">
           <plugin>mock_components/GenericSystem</plugin>
         </xacro:if>
-        <xacro:unless value="${sim_right}">
-          <plugin>realman_arm_hardware_interface/RealmanArmHardwareInterface</plugin>
+
+        <!-- At least one side real → real plugin; the flags tell the
+             hardware interface which side to hold at feedback position -->
+        <xacro:unless value="${sim_left == 'true' and sim_right == 'true'}">
+          <plugin>dual_arm_hardware_interface/DualArmsHardwareInterface</plugin>
+          <param name="config_prefix">${config_prefix}</param>
+          <param name="sim_left">${sim_left}</param>
+          <param name="sim_right">${sim_right}</param>
         </xacro:unless>
       </hardware>
+
+      <!-- ============================================================
+           Left arm — 7 joints
+           The hardware interface classifies joints by name suffix:
+             *_l → SDK arm[0]  (left)
+             *_r → SDK arm[2]  (right)
+             other → SDK arm[1] (head)
+           ============================================================ -->
+      <joint name="arm_J1_l">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+      <joint name="arm_J2_l">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+      <joint name="arm_J3_l">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+      <joint name="arm_J4_l">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+      <joint name="arm_J5_l">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+      <joint name="arm_J6_l">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+      <joint name="arm_J7_l">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+      <!-- ============================================================
+           Right arm — 7 joints
+           ============================================================ -->
       <joint name="arm_J1_r">
         <command_interface name="position"/>
-        <command_interface name="effort"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
       </joint>
       <joint name="arm_J2_r">
         <command_interface name="position"/>
-        <command_interface name="effort"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
       </joint>
       <joint name="arm_J3_r">
         <command_interface name="position"/>
-        <command_interface name="effort"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
       </joint>
       <joint name="arm_J4_r">
         <command_interface name="position"/>
-        <command_interface name="effort"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
       </joint>
       <joint name="arm_J5_r">
         <command_interface name="position"/>
-        <command_interface name="effort"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
       </joint>
       <joint name="arm_J6_r">
         <command_interface name="position"/>
-        <command_interface name="effort"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
       </joint>
       <joint name="arm_J7_r">
         <command_interface name="position"/>
-        <command_interface name="effort"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
       </joint>
-    </ros2_control>
 
-    <ros2_control name="left_arm" type="system">
-      <hardware>
-        <xacro:if value="${sim_left}">
-          <plugin>mock_components/GenericSystem</plugin>
-        </xacro:if>
-        <xacro:unless value="${sim_left}">
-          <plugin>realman_arm_hardware_interface/RealmanArmHardwareInterface</plugin>
-        </xacro:unless>
-      </hardware>
-        <joint name="arm_J1_l">
-          <command_interface name="position"/>
-          <command_interface name="effort"/>
-          <state_interface name="position"/>
-          <state_interface name="velocity"/>
-        </joint>
-        <joint name="arm_J2_l">
-          <command_interface name="position"/>
-          <command_interface name="effort"/>
-          <state_interface name="position"/>
-          <state_interface name="velocity"/>
-        </joint>
-        <joint name="arm_J3_l">
-          <command_interface name="position"/>
-          <command_interface name="effort"/>
-          <state_interface name="position"/>
-          <state_interface name="velocity"/>
-        </joint>
-        <joint name="arm_J4_l">
-          <command_interface name="position"/>
-          <command_interface name="effort"/>
-          <state_interface name="position"/>
-          <state_interface name="velocity"/>
-        </joint>
-        <joint name="arm_J5_l">
-          <command_interface name="position"/>
-          <command_interface name="effort"/>
-          <state_interface name="position"/>
-          <state_interface name="velocity"/>
-        </joint>
-        <joint name="arm_J6_l">
-          <command_interface name="position"/>
-          <command_interface name="effort"/>
-          <state_interface name="position"/>
-          <state_interface name="velocity"/>
-        </joint>
-        <joint name="arm_J7_l">
-          <command_interface name="position"/>
-          <command_interface name="effort"/>
-          <state_interface name="position"/>
-          <state_interface name="velocity"/>
-        </joint>
+      <!-- If you ever add a head, declare it here without a suffix, e.g.: -->
+      
+      <joint name="head_pan">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+      <joint name="head_tilt">
+        <command_interface name="position"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+      
     </ros2_control>
-
   </xacro:macro>
+
 </robot>

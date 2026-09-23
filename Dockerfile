@@ -54,27 +54,27 @@ RUN dos2unix /entrypoint.sh
 ENTRYPOINT [ "dumb-init", "--", "/entrypoint.sh" ]
 
 # ========== xr_teleop_img ========== 
-FROM ros2_img AS xr_teleop_img
+# FROM ros2_img AS xr_teleop_img
 
-RUN mkdir /cert
-WORKDIR /cert
-ENV CERT_FILE=cert.pem
-ENV KEY_FILE=key.pem
-ENV XR_TELEOP_CERT=/cert/${CERT_FILE}
-ENV XR_TELEOP_KEY=/cert/${KEY_FILE}
+# RUN mkdir /cert
+# WORKDIR /cert
+# ENV CERT_FILE=cert.pem
+# ENV KEY_FILE=key.pem
+# ENV XR_TELEOP_CERT=/cert/${CERT_FILE}
+# ENV XR_TELEOP_KEY=/cert/${KEY_FILE}
 
-RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ${XR_TELEOP_KEY} -out ${XR_TELEOP_CERT}
+# RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ${XR_TELEOP_KEY} -out ${XR_TELEOP_CERT}
 
-ENV WS_NAME=xr_teleoperate
-RUN echo '. /root/${WS_NAME}/install/setup.bash' >> ~/.bashrc
+# ENV WS_NAME=xr_teleoperate
+# RUN echo '. /root/${WS_NAME}/install/setup.bash' >> ~/.bashrc
 
-RUN mkdir -p /root/${WS_NAME}/src
-WORKDIR /root/${WS_NAME}
-COPY ./src ./src
+# RUN mkdir -p /root/${WS_NAME}/src
+# WORKDIR /root/${WS_NAME}
+# COPY ./src ./src
 
-RUN rosdep install --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} -r -y
-RUN rm -rf /var/lib/apt/lists/*
+# RUN rosdep install --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} -r -y
+# RUN rm -rf /var/lib/apt/lists/*
 
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers console_direct+
+# RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers console_direct+
 
-RUN rm -rf ./src 
+# RUN rm -rf ./src 

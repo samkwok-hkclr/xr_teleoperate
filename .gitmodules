@@ -1,3 +1,13 @@
 [submodule "src/dual_arm_v2_2_sdk"]
 	path = src/dual_arm_v2_2_sdk
 	url = https://github.com/samkwok-hkclr/dual_arm_v2_2_sdk
+
+[submodule "src/robot_controller"]
+	path = src/robot_controller
+	url = https://github.com/samkwok-hkclr/robot_controller
+	branch = master
+
+[submodule "src/robot_controller_msgs"]
+	path = src/robot_controller_msgs
+	url = https://github.com/samkwok-hkclr/robot_controller_msgs
+	branch = master

@@ -228,7 +228,7 @@
 			<origin xyz="${origin_x_list[5]} ${origin_y_list[5]} ${origin_z_list[5]}" rpy="${origin_roll_list[5]} ${origin_pitch_list[5]} ${origin_yaw_list[5]}" />
 			<parent link="${prefix}_L5_${suffix}" />
 			<child link="${prefix}_L6_${suffix}" />
-			<axis xyz="0 0 1" />
+			<axis xyz="0 0 -1" />
 			<limit effort="0" velocity="5.0" lower="-1.22173" upper="1.22173" />
 		</joint>
 
@@ -265,7 +265,7 @@
 			<origin xyz="${origin_x_list[6]} ${origin_y_list[6]} ${origin_z_list[6]}" rpy="${origin_roll_list[6]} ${origin_pitch_list[6]} ${origin_yaw_list[6]}" />
 			<parent link="${prefix}_L6_${suffix}" />
 			<child link="${prefix}_L7_${suffix}" />
-			<axis xyz="0 0 1" />
+			<axis xyz="0 0 -1" />
 			<limit effort="0" velocity="5.0" lower="-1.22173" upper="1.22173" />
 		</joint>
 

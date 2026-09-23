@@ -35,7 +35,6 @@ CallbackReturn HardwareBase::on_init(const hardware_interface::HardwareInfo& inf
 
   RCLCPP_INFO(logger_, "[%s] on_init: name=%s, joints=%zu", component_name(), get_name().c_str(), info.joints.size());
 
-  // ---- 必需参数：config_prefix ----
   auto it = info.hardware_parameters.find("config_prefix");
   if (it == info.hardware_parameters.end() || it->second.empty())
   {
@@ -125,7 +124,6 @@ CallbackReturn HardwareBase::on_deactivate(const rclcpp_lifecycle::State&)
 {
   RCLCPP_INFO(logger_, "[%s] on_deactivate", component_name());
 
-  // 无论子类钩子成功与否，都标记为不再激活，避免 read/write 继续下发命令
   const CallbackReturn result = on_deactivate_impl();
 
   if (result != CallbackReturn::SUCCESS)
@@ -151,8 +149,6 @@ CallbackReturn HardwareBase::on_cleanup(const rclcpp_lifecycle::State&)
 
   const CallbackReturn result = on_cleanup_impl();
 
-  // 释放对这个硬件组件的引用。若这是最后一个引用，ControlApiManager
-  // 内部的 weak_ptr 会失效，SDK 被析构，UDP 端口释放。
   api_.reset();
 
   RCLCPP_INFO(logger_, "[%s] on_cleanup done", component_name());
@@ -170,6 +166,8 @@ CallbackReturn HardwareBase::on_shutdown(const rclcpp_lifecycle::State&)
   {
     on_deactivate_impl();
   }
+
+  on_shutdown_impl();
 
   api_.reset();
 

@@ -140,7 +140,7 @@ public:
         btn_a_callback);
     }
 
-    // Create a 50Hz timer, but keep it cancelled until activated
+    // Create a 100Hz timer, but keep it cancelled until activated
     tf_timer_ = this->create_wall_timer(
       std::chrono::milliseconds(10), 
       std::bind(&XrTeleop::tf_timer_cb, this));
@@ -254,7 +254,7 @@ private:
       const double age_s = (now - tf.header.stamp).seconds();
       if (age_s < 0.0 || age_s > max_age_s_)
       {
-        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
           "Dropping %s target: TF age %.3f s", frame.c_str(), age_s);
         continue;
       }

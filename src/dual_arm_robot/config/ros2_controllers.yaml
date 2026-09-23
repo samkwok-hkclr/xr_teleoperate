@@ -40,6 +40,17 @@ left_arm_controller:
     state_interfaces:
       - position
       - velocity
+    state_publish_rate: 50.0
+    action_monitor_rate: 20.0
+
+    allow_partial_joints_goal: true
+    # open_loop_control: true
+    # constraints:
+    #   stopped_velocity_tolerance: 0.01
+    #   goal_time: 0.0
+    #   joint1:
+    #     trajectory: 0.05
+    #     goal: 0.03
 
 right_arm_controller:
   ros__parameters:
@@ -56,6 +67,17 @@ right_arm_controller:
     state_interfaces:
       - position
       - velocity
+    state_publish_rate: 50.0
+    action_monitor_rate: 20.0
+
+    allow_partial_joints_goal: true
+    # open_loop_control: true
+    # constraints:
+    #   stopped_velocity_tolerance: 0.01
+    #   goal_time: 0.0
+    #   joint1:
+    #     trajectory: 0.05
+    #     goal: 0.03
 
 # left_arm_effort_controller:
 #   ros__parameters:

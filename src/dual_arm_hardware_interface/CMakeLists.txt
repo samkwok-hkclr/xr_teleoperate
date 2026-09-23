@@ -10,7 +10,6 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
-# 默认构建类型（单配置生成器）
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
@@ -25,12 +24,12 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
-
-# SDK 包（ROS2 模式由 ament 提供）
+find_package(Boost REQUIRED)
 find_package(dual_arm_v2_2_control_sdk REQUIRED)
 
 # ============================================================
@@ -45,11 +44,16 @@ add_library(dual_arm_hardware_interface SHARED
   src/joint_group_base.cpp
   src/gripper_base.cpp
 
-  # ---- 具体实现 ----
+  # ---- 合并双臂（推荐） ----
+  src/dual_arms_hardware_interface.cpp
+
+  # ---- 单臂（保留，兼容旧配置） ----
   src/left_arm_hardware_interface.cpp
   src/right_arm_hardware_interface.cpp
   src/head_hardware_interface.cpp
   src/elevator_hardware_interface.cpp
+
+  # ---- 夹爪 ----
   src/left_gripper_hardware_interface.cpp
   src/right_gripper_hardware_interface.cpp
 )
@@ -64,33 +68,27 @@ target_link_libraries(dual_arm_hardware_interface
   PUBLIC
     rclcpp::rclcpp
     rclcpp_lifecycle::rclcpp_lifecycle
+    std_msgs::std_msgs
     hardware_interface::hardware_interface
     pluginlib::pluginlib
     lifecycle_msgs::lifecycle_msgs
+    Boost::boost 
     dual_arm_v2_2_control_sdk::dual_arm_v2_2_control_sdk
   PRIVATE
     diagnostic_updater::diagnostic_updater
 )
 
 # ============================================================
-# 编译选项（仅作用于本 target）
+# 编译选项
 # ============================================================
 target_compile_options(dual_arm_hardware_interface PRIVATE
-  # 警告
   $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall>
   $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wextra>
   $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wpedantic>
 
-  # Debug
   $<$<CONFIG:Debug>:-O0;-g3;-fno-omit-frame-pointer>
-
-  # Release —— 显式补回 -DNDEBUG
   $<$<CONFIG:Release>:-O2;-DNDEBUG>
-
-  # RelWithDebInfo
   $<$<CONFIG:RelWithDebInfo>:-O2;-g;-DNDEBUG>
-
-  # MinSizeRel
   $<$<CONFIG:MinSizeRel>:-Os;-DNDEBUG>
 )
 

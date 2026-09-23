@@ -2,6 +2,9 @@
 #include <atomic>
 #include <string>
 #include <cstdint>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
@@ -18,6 +21,41 @@
 
 #include "xr_teleop/arm_types.hpp"
 
+namespace {
+class ScopedTimer
+{
+public:
+  ScopedTimer(rclcpp::Logger logger, rclcpp::Clock::SharedPtr clock,
+              const char * name, double warn_ms = 0.0)
+  : logger_(logger), clock_(clock), name_(name),
+    start_(std::chrono::steady_clock::now()),
+    warn_ms_(warn_ms) {}
+
+  double elapsed_ms() const
+  {
+    return std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - start_).count();
+  }
+
+  ~ScopedTimer()
+  {
+    const double ms = elapsed_ms();
+    if (warn_ms_ > 0.0 && ms > warn_ms_)
+    {
+      RCLCPP_WARN_THROTTLE(logger_, *clock_, 1000,
+        "[timing] %s took %.2f ms (threshold %.2f)", name_, ms, warn_ms_);
+    }
+  }
+
+private:
+  rclcpp::Logger logger_;
+  rclcpp::Clock::SharedPtr clock_;
+  const char * name_;
+  std::chrono::steady_clock::time_point start_;
+  double warn_ms_;
+};
+} // namespace
+
 namespace pose_tracker
 {
 
@@ -33,12 +71,12 @@ public:
     singularity_halt_(false)
   {
     declare_parameter<std::string>("side", "");
-    declare_parameter<double>("lin_tol_x", 0.08);
-    declare_parameter<double>("lin_tol_y", 0.08);
-    declare_parameter<double>("lin_tol_z", 0.08);
+    declare_parameter<double>("lin_tol_x", 0.01);
+    declare_parameter<double>("lin_tol_y", 0.01);
+    declare_parameter<double>("lin_tol_z", 0.01);
     declare_parameter<double>("rot_tol", 0.05);
-    declare_parameter<double>("tracker_timeout", 0.05);
-    declare_parameter<double>("loop_rate", 100.0);
+    declare_parameter<double>("target_pose_timeout", 0.04);
+    declare_parameter<double>("loop_rate", 50.0);
 
     RCLCPP_INFO(this->get_logger(), "PoseTracker component instantiated.");
   }
@@ -72,8 +110,7 @@ public:
     moveit_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
     moveit_executor_->add_node(moveit_node_);
     moveit_spin_thread_ = std::thread(&PoseTrackerWrapper::moveit_spin_loop, this);
-    // moveit_spin_thread_ = std::thread{ moveit_executor_->spin(); };
-
+    
     // 2. Initialize MoveIt dependencies using the helper node
     servo_parameters_ = moveit_servo::ServoParameters::makeServoParameters(moveit_node_);
     if (!servo_parameters_)
@@ -109,11 +146,13 @@ public:
 
     // 3. Initialize Pubs/Subs
     status_sub_ = this->create_subscription<std_msgs::msg::Int8>(
-      "/" + side + "_arm/servo_pose_tracking_helper/status", 1,
+      "/" + side + "_arm/servo_pose_tracking_helper/status", 
+      1,
       std::bind(&PoseTrackerWrapper::status_cb, this, std::placeholders::_1));
 
     ready_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-      "/" + side + "_arm/ready", 1,
+      "/" + side + "_arm/ready", 
+      1,
       std::bind(&PoseTrackerWrapper::ready_cb, this, std::placeholders::_1));
 
     warn_pub_ = this->create_publisher<std_msgs::msg::Bool>("/" + side + "_arm/warn", 1);
@@ -136,15 +175,17 @@ public:
 
     stop_tracking_.store(false);
     stop_moveit_spin_.store(false);
+    worker_active_.store(false);
+    worker_exit_.store(false);
 
     if (!tracking_thread_.joinable())
     {
       tracking_thread_ = std::thread(&PoseTrackerWrapper::tracking_loop, this);
     }
-    if (!moveit_spin_thread_.joinable())
-    {
-      moveit_spin_thread_ = std::thread(&PoseTrackerWrapper::moveit_spin_loop, this);
-    }
+    // if (!moveit_spin_thread_.joinable())
+    // {
+    //   moveit_spin_thread_ = std::thread(&PoseTrackerWrapper::moveit_spin_loop, this);
+    // }
 
     RCLCPP_INFO(this->get_logger(), "PoseTracker activated.");
     return CallbackReturn::SUCCESS;
@@ -153,6 +194,12 @@ public:
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State &) override
   {
     stop_tracking_.store(true);
+
+    if (tracker_)
+    {
+      tracker_->stopMotion();
+    }
+
     if (tracking_thread_.joinable())
     {
       tracking_thread_.join();
@@ -167,6 +214,7 @@ public:
     }
 
     ready_.store(false);
+
     RCLCPP_INFO(this->get_logger(), "PoseTracker deactivated.");
     return CallbackReturn::SUCCESS;
   }
@@ -203,12 +251,16 @@ private:
 
   void shutdown_threads()
   {
+    // ---- 停 supervisor ----
     stop_tracking_.store(true);
+    if (tracker_) 
+      tracker_->stopMotion();
     if (tracking_thread_.joinable())
     {
       tracking_thread_.join();
     }
 
+    // ---- 停 moveit spin ----
     stop_moveit_spin_.store(true);
     if (moveit_executor_)
     {
@@ -256,10 +308,12 @@ private:
       case StatusCode::HALT_FOR_SINGULARITY:
         warn_msg.data = true;
         singular_exit_ns_ = -1;
-        if (!singularity_halt_.exchange(true)) 
+        if (!singularity_halt_.exchange(true))
         {
           RCLCPP_WARN(this->get_logger(), "HALT_FOR_SINGULARITY — pausing pose tracking.");
-          tracker_->stopMotion();
+          if (tracker_) 
+            tracker_->stopMotion();
+          // supervisor 会在下一个 tick 把 worker_active_ 置 false
         }
         break;
 
@@ -283,18 +337,25 @@ private:
   void ready_cb(const std_msgs::msg::Bool::SharedPtr msg)
   {
     const bool now_ready = msg->data;
+    RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+      "now_ready: %s", now_ready ? "true" : "false");
 
-    if (!now_ready) 
+    if (!now_ready && prev_ready_)
     {
-      tracker_->stopMotion();
-    } 
-    else if (!prev_ready_) 
+      // 立即打断正在跑的 moveToPose
+      if (tracker_) 
+        tracker_->stopMotion();
+      RCLCPP_INFO(this->get_logger(), "stopMotion() issued from ready_cb");
+      // supervisor 会在下一个 tick 把 worker_active_ 置 false 并通知 cv
+    }
+    else if (now_ready && !prev_ready_)
     {
-      if (singularity_halt_.exchange(false)) 
+      if (singularity_halt_.exchange(false))
       {
-        RCLCPP_INFO(this->get_logger(), "Singularity halt manually cleared by ready press.");
+        RCLCPP_INFO(this->get_logger(), "Singularity halt cleared by ready press");
       }
       singular_exit_ns_ = -1;
+      // supervisor 会在下一个 tick 把 worker_active_ 置 true
     }
 
     prev_ready_ = now_ready;
@@ -304,101 +365,220 @@ private:
   void moveit_spin_loop()
   {
     RCLCPP_INFO(this->get_logger(), "moveit_spin_loop started.");
-
     const auto spin_timeout = std::chrono::milliseconds(10);
+    constexpr double warn_threshold_ms = 30.0;   // 30ms 以上才算异常
 
     while (rclcpp::ok() && !stop_moveit_spin_.load())
     {
-      moveit_executor_->spin_once(spin_timeout);
-    }
+      const auto before = std::chrono::steady_clock::now();
 
+      try
+      {
+        moveit_executor_->spin_once(spin_timeout);
+      }
+      catch (const std::exception & e)
+      {
+        RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+          "moveit_spin_loop exception: %s", e.what());
+      }
+
+      const auto elapsed_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - before).count();
+
+      if (elapsed_ms > warn_threshold_ms)
+      {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+          "spin callback took %.1f ms", elapsed_ms);
+      }
+    }
     RCLCPP_INFO(this->get_logger(), "moveit_spin_loop exiting.");
   }
   
-
   void tracking_loop()
   {
-    // Tolerances for reaching the target
-    const Eigen::Vector3d lin_tol{
-      get_parameter("lin_tol_x").as_double(),
-      get_parameter("lin_tol_y").as_double(), 
-      get_parameter("lin_tol_z").as_double()};
-    const double rot_tol = get_parameter("rot_tol").as_double();
-    const double timeout = get_parameter("tracker_timeout").as_double(); // second
-
     const double rate = get_parameter("loop_rate").as_double();
-    auto last_time = std::chrono::steady_clock::now();
-    const auto period = std::chrono::duration<double>(1.0 / rate);
-    const auto warn_threshold = period * 1.5;
-
     rclcpp::Rate loop_rate(rate);
-    while (rclcpp::ok())
+    const double period_ms = 1000.0 / rate;
+
+    RCLCPP_INFO(this->get_logger(), "Tracking supervisor started (rate=%.1f Hz)", rate);
+
+    // ---- 启动 worker 线程（一次） ----
+    {
+      std::lock_guard<std::mutex> lock(worker_mutex_);
+      worker_active_.store(false);
+      worker_exit_.store(false);
+    }
+    tracking_worker_ = std::thread(&PoseTrackerWrapper::worker_loop, this);
+
+    // ---- Supervisor 主循环 ----
+    auto last_time = std::chrono::steady_clock::now();
+
+    while (rclcpp::ok() && !stop_tracking_.load())
     {
       const auto loop_start = std::chrono::steady_clock::now();
-      const auto elapsed_last = loop_start - last_time;
+      const double elapsed_ms = std::chrono::duration<double, std::milli>(loop_start - last_time).count();
       last_time = loop_start;
 
-      if (elapsed_last > warn_threshold)
+      if (elapsed_ms > period_ms * 2.0)
       {
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-          "tracking_loop period overrun: %.1f ms (target %.1f ms)",
-          std::chrono::duration<double, std::milli>(elapsed_last).count(),
-          period.count() * 1000.0);
+          "[supervisor] period overrun: %.1f ms (target %.1f ms)",
+          elapsed_ms, period_ms);
       }
 
-      if (stop_tracking_.load())
-      {
-        tracker_->stopMotion();
-        break;
-      }
-
-      // CHANGED: this thread only runs while active now, so the
-      // !is_active() branch is a safety net rather than the normal path.
-      // It also keeps resetTargetPose() from running at 100 Hz while
-      // the node is INACTIVE, which is what allowed it to hold the TF
-      // buffer lock across a lifecycle transition.
       if (!is_active())
       {
         loop_rate.sleep();
         continue;
       }
 
-      if (ready_.load() && !singularity_halt_.load())
+      const bool should_track = ready_.load() && !singularity_halt_.load();
+      const bool is_tracking  = worker_active_.load();
+
+      if (should_track && !is_tracking)
       {
-        moveit_servo::PoseTrackingStatusCode code = tracker_->moveToPose(lin_tol, rot_tol, timeout);
-        switch (code)
+        // ---- 激活 worker ----
         {
-          case moveit_servo::PoseTrackingStatusCode::INVALID:
-            RCLCPP_ERROR(this->get_logger(), "INVALID");
-            break;
-          case moveit_servo::PoseTrackingStatusCode::SUCCESS:
-            RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "SUCCESS");
-            break;
-          case moveit_servo::PoseTrackingStatusCode::NO_RECENT_TARGET_POSE:
-            RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "NO_RECENT_TARGET_POSE");
-            break;
-          case moveit_servo::PoseTrackingStatusCode::NO_RECENT_END_EFFECTOR_POSE:
-            RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "NO_RECENT_END_EFFECTOR_POSE");
-            break;
-          case moveit_servo::PoseTrackingStatusCode::STOP_REQUESTED:
-            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "STOP_REQUESTED");
-            break;
+          std::lock_guard<std::mutex> lock(worker_mutex_);
+          worker_active_.store(true);
         }
+        worker_cv_.notify_all();
+        RCLCPP_INFO(this->get_logger(), "Tracking worker activated");
       }
-      else if (!ready_.load())
+      else if (!should_track && is_tracking)
       {
-        tracker_->resetTargetPose();
+        // ---- 停掉 worker + 打断 moveToPose ----
+        {
+          std::lock_guard<std::mutex> lock(worker_mutex_);
+          worker_active_.store(false);
+        }
+        if (tracker_) 
+          tracker_->stopMotion();
+
+        worker_cv_.notify_all();
+        RCLCPP_INFO(this->get_logger(), "Tracking worker deactivated");
+      }
+      else if (!should_track)
+      {
+        // 未激活：打一条低频提示
         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 10000,
-          "Wait to activate. Tracker status: [%d]", static_cast<int>(last_status_.load()));
+          "Waiting to activate. Tracker status: [%d]",
+          static_cast<int>(last_status_.load()));
       }
-      else
-      {
-        // singularity_halt_ == true 且 ready_ == true → 保留目标位姿，等恢复
-        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Singularity halt active, holding target pose.");
-      }
-      
+
       loop_rate.sleep();
     }
+
+    // ---- Supervisor 退出：先停 worker，再 join ----
+    RCLCPP_INFO(this->get_logger(), "Tracking supervisor shutting down...");
+    {
+      std::lock_guard<std::mutex> lock(worker_mutex_);
+      worker_active_.store(false);
+      worker_exit_.store(true);
+    }
+
+    if (tracker_) 
+      tracker_->stopMotion();
+    worker_cv_.notify_all();
+
+    if (tracking_worker_.joinable())
+    {
+      tracking_worker_.join();
+    }
+
+    RCLCPP_INFO(this->get_logger(), "tracking_loop end");
+  }
+
+  void worker_loop()
+  {
+    // ---- 参数只读一次 ----
+    const Eigen::Vector3d lin_tol{
+      get_parameter("lin_tol_x").as_double(),
+      get_parameter("lin_tol_y").as_double(),
+      get_parameter("lin_tol_z").as_double()};
+    const double rot_tol             = get_parameter("rot_tol").as_double();
+    const double target_pose_timeout = get_parameter("target_pose_timeout").as_double();
+
+    RCLCPP_INFO(this->get_logger(), "Tracking worker started");
+
+    while (rclcpp::ok() && !worker_exit_.load())
+    {
+      // ---- 等待 supervisor 激活 ----
+      {
+        std::unique_lock<std::mutex> lock(worker_mutex_);
+        worker_cv_.wait(lock, [&] {
+          return worker_active_.load() || worker_exit_.load();
+        });
+      }
+
+      if (worker_exit_.load()) 
+        break;
+
+      // ---- activate moveToPose ----
+      while (worker_active_.load() && !worker_exit_.load() && rclcpp::ok())
+      {
+        const auto t0 = std::chrono::steady_clock::now();
+
+        moveit_servo::PoseTrackingStatusCode code =
+          moveit_servo::PoseTrackingStatusCode::INVALID;
+        try
+        {
+          code = tracker_->moveToPose(lin_tol, rot_tol, target_pose_timeout);
+        }
+        catch (const std::exception& e)
+        {
+          RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+            "moveToPose threw: %s", e.what());
+          break;
+        }
+        catch (...)
+        {
+          RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+            "moveToPose unknown exception");
+          break;
+        }
+
+        const double dur_ms = std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - t0).count();
+
+        switch (code)
+        {
+          case moveit_servo::PoseTrackingStatusCode::SUCCESS:
+            RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+              "moveToPose SUCCESS (%.1f ms)", dur_ms);
+            break;
+          case moveit_servo::PoseTrackingStatusCode::STOP_REQUESTED:
+            // stopMotion 被调用 → 正常退出
+            RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+              "moveToPose STOP_REQUESTED (%.1f ms)", dur_ms);
+            break;
+          case moveit_servo::PoseTrackingStatusCode::NO_RECENT_TARGET_POSE:
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+              "moveToPose NO_RECENT_TARGET_POSE (%.1f ms)", dur_ms);
+            break;
+          case moveit_servo::PoseTrackingStatusCode::NO_RECENT_END_EFFECTOR_POSE:
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+              "moveToPose NO_RECENT_END_EFFECTOR_POSE (%.1f ms)", dur_ms);
+            break;
+          case moveit_servo::PoseTrackingStatusCode::INVALID:
+            RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+              "moveToPose INVALID (%.1f ms)", dur_ms);
+            break;
+        }
+
+        // STOP_REQUESTED 后立即退出内循环；否则再看 worker_active_
+        if (code == moveit_servo::PoseTrackingStatusCode::STOP_REQUESTED) 
+          break;
+      }
+
+      // 每次会话结束后重置目标
+      if (!worker_exit_.load() && tracker_)
+      {
+        tracker_->resetTargetPose();
+      }
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Tracking worker exiting");
   }
 
   rclcpp::NodeOptions options_;
@@ -417,7 +597,14 @@ private:
   std::shared_ptr<planning_scene_monitor::PlanningSceneMonitor> planning_scene_monitor_;
   std::unique_ptr<moveit_servo::PoseTracking> tracker_;
 
-  std::thread tracking_thread_;
+  std::thread             tracking_thread_;
+
+  std::thread             tracking_worker_;
+  std::mutex              worker_mutex_;
+  std::condition_variable worker_cv_;
+  std::atomic<bool>       worker_active_{false};   // 是否要跑 moveToPose
+  std::atomic<bool>       worker_exit_{false};     // 是否要退出 worker 线程
+  
   std::atomic<bool> ready_;
   std::atomic<bool> stop_tracking_;
   std::atomic<int8_t> last_status_;

@@ -51,25 +51,23 @@ public:
   CallbackReturn on_shutdown  (const rclcpp_lifecycle::State& previous_state) override;
 
 protected:
-  // ---- 子类必须实现 ----
   virtual const char* component_name() const = 0;
 
-  // ---- 子类可选覆盖的生命周期钩子 ----
   virtual CallbackReturn on_init_impl()       { return CallbackReturn::SUCCESS; }
   virtual CallbackReturn on_configure_impl()  { return CallbackReturn::SUCCESS; }
   virtual CallbackReturn on_activate_impl()   { return CallbackReturn::SUCCESS; }
   virtual CallbackReturn on_deactivate_impl() { return CallbackReturn::SUCCESS; }
   virtual CallbackReturn on_cleanup_impl()    { return CallbackReturn::SUCCESS; }
-
-  // ---- 共享资源 ----
+  virtual CallbackReturn on_shutdown_impl()   { return CallbackReturn::SUCCESS; } 
+  
   std::shared_ptr<dual_arm_v2_2_sdk::ControlApi> api_;
   std::string config_prefix_;
   rclcpp::Logger logger_;
 
-  int debug_tick_{0};
+  int debug_read_tick_{0};
+  int debug_write_tick_{0};
   const int debug_every_n_{100};
 
-  // ---- 辅助 ----
   bool is_active() const;
 };
 

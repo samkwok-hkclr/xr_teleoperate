@@ -2,15 +2,29 @@
 <library path="dual_arm_hardware_interface">
 
   <!-- ============================================================ -->
-  <!-- Joint group components                                        -->
+  <!-- Combined dual-arm component (left + head + right, one packet) -->
   <!-- ============================================================ -->
+  <class name="dual_arm_hardware_interface/DualArmsHardwareInterface"
+         type="dual_arm_hardware_interface::DualArmsHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Combined hardware interface for BOTH arms (plus head).
+      Issues exactly ONE ControlApi::move_joint(Group::ALL, ...) per
+      control cycle so the SDK emits a single UDP packet per cycle.
+      Use this when both arms must move simultaneously at 100 Hz.
+    </description>
+  </class>
 
+  <!-- ============================================================ -->
+  <!-- Legacy single-arm components (kept for compatibility)        -->
+  <!-- ============================================================ -->
   <class name="dual_arm_hardware_interface/LeftArmHardwareInterface"
          type="dual_arm_hardware_interface::LeftArmHardwareInterface"
          base_class_type="hardware_interface::SystemInterface">
     <description>
-      Left arm hardware interface.
-      Drives dual_arm_v2_2_sdk::Group::LEFT_ARM via ControlApi::move_joint().
+      Left arm only. Sends one packet per cycle for the left arm; the
+      right arm is held at its current position. Do NOT use together
+      with RightArmHardwareInterface at 100 Hz — see DualArmsHardwareInterface.
     </description>
   </class>
 
@@ -18,8 +32,7 @@
          type="dual_arm_hardware_interface::RightArmHardwareInterface"
          base_class_type="hardware_interface::SystemInterface">
     <description>
-      Right arm hardware interface.
-      Drives dual_arm_v2_2_sdk::Group::RIGHT_ARM via ControlApi::move_joint().
+      Right arm only. Same caveat as LeftArmHardwareInterface.
     </description>
   </class>
 
@@ -29,6 +42,8 @@
     <description>
       Head (pan/tilt) hardware interface.
       Drives dual_arm_v2_2_sdk::Group::HEAD via ControlApi::move_joint().
+      When DualArmsHardwareInterface is used, the head is already covered
+      by that class — do not declare HeadHardwareInterface in the same URDF.
     </description>
   </class>
 

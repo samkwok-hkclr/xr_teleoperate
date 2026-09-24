@@ -21,6 +21,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(xr_teleop_msgs REQUIRED)
+find_package(controller_manager_msgs REQUIRED)
 
 # TF2 packages
 find_package(tf2_ros REQUIRED)
@@ -54,6 +55,7 @@ ament_target_dependencies(pose_tracker_component
   trajectory_msgs
   tf2_eigen
   tf2_geometry_msgs
+  controller_manager_msgs
   moveit_core
   moveit_servo
   moveit_msgs
@@ -67,6 +69,31 @@ ament_target_dependencies(pose_tracker_component
 rclcpp_components_register_node(pose_tracker_component
   PLUGIN "pose_tracker::PoseTrackerWrapper"
   EXECUTABLE pose_tracker
+)
+
+# -----------------------------------------------------------
+# PoseTrackingWrapper (Lifecycle Composable Node Component)
+# -----------------------------------------------------------
+
+add_library(pose_tracking_wrapper_component SHARED
+  src/pose_tracking_wrapper.cpp
+)
+target_compile_features(pose_tracking_wrapper_component PUBLIC c_std_99 cxx_std_17)
+target_include_directories(pose_tracking_wrapper_component PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(pose_tracking_wrapper_component
+  rclcpp::rclcpp
+  rclcpp_lifecycle::rclcpp_lifecycle
+  rclcpp_components::component
+  ${std_msgs_TARGETS}
+  ${controller_manager_msgs_TARGETS}
+)
+
+rclcpp_components_register_node(pose_tracking_wrapper_component
+  PLUGIN "xr_teleop::PoseTrackingWrapper"
+  EXECUTABLE pose_tracking_wrapper
 )
 
 # -----------------------------------------------------------
@@ -110,6 +137,7 @@ ament_target_dependencies(teleop_lifecycle_manager
 install(TARGETS 
   pose_tracker_component
   xr_teleop_component
+  pose_tracking_wrapper_component
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

@@ -24,6 +24,61 @@ controller_manager:
     right_gripper_controller:
       type: forward_command_controller/ForwardCommandController
 
+    left_cartesian_motion_controller:
+      type: cartesian_motion_controller/CartesianMotionController
+
+    right_cartesian_motion_controller:
+      type: cartesian_motion_controller/CartesianMotionController
+
+left_cartesian_motion_controller:
+  ros__parameters:
+    end_effector_link: "tcp_l"
+    robot_base_link: "base_link"
+    joints:
+      - arm_J1_l
+      - arm_J2_l
+      - arm_J3_l
+      - arm_J4_l
+      - arm_J5_l
+      - arm_J6_l
+      - arm_J7_l
+    command_interfaces:
+      - position
+    solver:
+        error_scale: 1.0
+        iterations: 15
+    pd_gains:
+      trans_x: {p: 6.7, d: 0.5}
+      trans_y: {p: 6.7, d: 0.5}
+      trans_z: {p: 6.7, d: 0.5}
+      rot_x: {p: 5.7, d: 0.3}
+      rot_y: {p: 5.7, d: 0.3}
+      rot_z: {p: 5.7, d: 0.3}
+
+right_cartesian_motion_controller:
+  ros__parameters:
+    end_effector_link: "tcp_r"
+    robot_base_link: "base_link"
+    joints:
+      - arm_J1_r
+      - arm_J2_r
+      - arm_J3_r
+      - arm_J4_r
+      - arm_J5_r
+      - arm_J6_r
+      - arm_J7_r
+    command_interfaces:
+      - position
+    solver:
+      error_scale: 1.0
+      iterations: 15
+    pd_gains:
+      trans_x: {p: 6.7, d: 0.5}
+      trans_y: {p: 6.7, d: 0.5}
+      trans_z: {p: 6.7, d: 0.5}
+      rot_x: {p: 5.7, d: 0.3}
+      rot_y: {p: 5.7, d: 0.3}
+      rot_z: {p: 5.7, d: 0.3}
 
 left_arm_controller:
   ros__parameters:

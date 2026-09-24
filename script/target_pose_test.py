@@ -36,26 +36,26 @@ class InfiniteSquarePublisher(Node):
         
         # Dynamically set topic, frame, and waypoints based on argument
         if self.side == 'right':
-            topic = '/right_arm/target_pose'
+            topic = '/right_cartesian_motion_controller/target_frame'
             ready_topic = '/right_arm/ready'
             self.ee_frame = 'tcp_r'
             self.target_frame_id = 'right_target_frame'
             self.square_waypoints = [
                 (0.6, -0.25, 1.0),
                 (0.5, -0.35, 1.0),
-                (0.5, -0.35, 1.4),
-                (0.6, -0.25, 1.4)
+                (0.5, -0.35, 1.3),
+                (0.6, -0.25, 1.3)
             ]
         else:
-            topic = '/left_arm/target_pose'
+            topic = '/left_cartesian_motion_controller/target_frame'
             ready_topic = '/left_arm/ready'
             self.ee_frame = 'tcp_l'
             self.target_frame_id = 'left_target_frame'
             self.square_waypoints = [
-                (0.7, 0.30, 1.0),
+                (0.7, 0.25, 1.0),
                 (0.5, 0.35, 1.0),
-                (0.5, 0.35, 1.2),
-                (0.7, 0.30, 1.2),
+                (0.5, 0.35, 1.3),
+                (0.7, 0.25, 1.3),
                 # (0.3, -0.06, 0.38),
                 # (0.3, 0.06, 0.42),
                 # (0.3, 0.06, 0.45),
@@ -79,10 +79,10 @@ class InfiniteSquarePublisher(Node):
         
         self.start_pose = None
         self.start_time = None
-        self.time_per_segment = 10.0  # Seconds per side of the square
+        self.time_per_segment = 5.0  # Seconds per side of the square
         
         # 250 Hz timer
-        self.timer = self.create_timer(0.01, self.publish_target)
+        self.timer = self.create_timer(0.02, self.publish_target)
         self.get_logger().info(f'Initialized for [{self.side.upper()}] arm on topic: {topic} (broadcasting TF: {self.target_frame_id})')
 
     def publish_target(self):

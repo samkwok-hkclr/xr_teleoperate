@@ -82,12 +82,12 @@ public:
   export_command_interfaces() override;
 
   hardware_interface::return_type read(
-      const rclcpp::Time& time,
-      const rclcpp::Duration& period) override;
+    const rclcpp::Time& time,
+    const rclcpp::Duration& period) override;
 
   hardware_interface::return_type write(
-      const rclcpp::Time& time,
-      const rclcpp::Duration& period) override;
+    const rclcpp::Time& time,
+    const rclcpp::Duration& period) override;
 
   void start_tuner_node();
   void stop_tuner_node();

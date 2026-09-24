@@ -1,7 +1,13 @@
+[submodule "src/cartesian_controllers"]
+	path = src/cartesian_controllers
+	url = https://github.com/fzi-forschungszentrum-informatik/cartesian_controllers
+	branch = ros2
+
 [submodule "src/dual_arm_v2_2_sdk"]
 	path = src/dual_arm_v2_2_sdk
 	url = https://github.com/samkwok-hkclr/dual_arm_v2_2_sdk
-
+	branch = master
+	
 [submodule "src/robot_controller"]
 	path = src/robot_controller
 	url = https://github.com/samkwok-hkclr/robot_controller

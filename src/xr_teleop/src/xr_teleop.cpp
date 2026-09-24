@@ -122,7 +122,7 @@ public:
       tcp_[arm] = tcp[i - 1];
       k_sources_[arm] = k_sources[i - 1];
 
-      target_pose_pub_[arm] = this->create_publisher<geometry_msgs::msg::PoseStamped>("/" + side + "_arm/target_pose", rclcpp::SensorDataQoS());
+      target_pose_pub_[arm] = this->create_publisher<geometry_msgs::msg::PoseStamped>("/" + side + "_cartesian_motion_controller/target_frame", 1);
       ready_pub_[arm] = this->create_publisher<std_msgs::msg::Bool>("/" + side + "_arm/ready", 1);
 
       std::function<void(const geometry_msgs::msg::PoseStamped::SharedPtr)> raw_pose_callback = 
@@ -254,8 +254,7 @@ private:
       const double age_s = (now - tf.header.stamp).seconds();
       if (age_s < 0.0 || age_s > max_age_s_)
       {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
-          "Dropping %s target: TF age %.3f s", frame.c_str(), age_s);
+        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000, "Dropping %s target: TF age %.3f s", frame.c_str(), age_s);
         continue;
       }
 

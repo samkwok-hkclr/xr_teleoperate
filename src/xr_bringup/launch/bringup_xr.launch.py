@@ -53,9 +53,11 @@ def _build_conditional_nodes(context, *args, **kwargs):
 
     # --- lifecycle node list ------------------------------------------
     lifecycle_nodes = [
-        "/left_arm/servo_pose_tracking",
-        "/right_arm/servo_pose_tracking",
-        "xr_teleop",
+        # "/left_arm/servo_pose_tracking",
+        # "/right_arm/servo_pose_tracking",
+        "/left_arm/pose_tracking_wrapper",
+        "/right_arm/pose_tracking_wrapper",
+        "/xr_teleop",
     ]
     if all_in_one:
         lifecycle_nodes.append("xr_transceiver")
@@ -174,32 +176,54 @@ def generate_launch_description():
     # ------------------------------------------------------------------
     # Composable lifecycle nodes (inside the container)
     # ------------------------------------------------------------------
+    # left_pose_tracking = ComposableNode(
+    #     package="xr_teleop",
+    #     plugin="pose_tracker::PoseTrackerWrapper",
+    #     name="servo_pose_tracking",
+    #     namespace="left_arm",
+    #     parameters=[
+    #         {"side": "left"},
+    #         {"butterworth_filter_coeff": 1.5},
+    #         servo_left_params,
+    #         moveit_config.to_dict(),
+    #     ],
+    #     # extra_arguments=[{"use_intra_process_comms": True}],
+    # )
+
+    # right_pose_tracking = ComposableNode(
+    #     package="xr_teleop",
+    #     plugin="pose_tracker::PoseTrackerWrapper",
+    #     name="servo_pose_tracking",
+    #     namespace="right_arm",
+    #     parameters=[
+    #         {"side": "right"},
+    #         {"butterworth_filter_coeff": 1.5},
+    #         servo_right_params,
+    #         moveit_config.to_dict(),
+    #     ],
+    #     # extra_arguments=[{"use_intra_process_comms": True}],
+    # )
+
     left_pose_tracking = ComposableNode(
         package="xr_teleop",
-        plugin="pose_tracker::PoseTrackerWrapper",
-        name="servo_pose_tracking",
+        plugin="xr_teleop::PoseTrackingWrapper",
+        name="pose_tracking_wrapper",
         namespace="left_arm",
         parameters=[
             {"side": "left"},
-            {"butterworth_filter_coeff": 5.0},
-            servo_left_params,
-            moveit_config.to_dict(),
         ],
-        # extra_arguments=[{"use_intra_process_comms": True}],
+        extra_arguments=[{"use_intra_process_comms": True}],
     )
 
     right_pose_tracking = ComposableNode(
         package="xr_teleop",
-        plugin="pose_tracker::PoseTrackerWrapper",
-        name="servo_pose_tracking",
+        plugin="xr_teleop::PoseTrackingWrapper",
+        name="pose_tracking_wrapper",
         namespace="right_arm",
         parameters=[
             {"side": "right"},
-            {"butterworth_filter_coeff": 5.0},
-            servo_right_params,
-            moveit_config.to_dict(),
         ],
-        # extra_arguments=[{"use_intra_process_comms": True}],
+        extra_arguments=[{"use_intra_process_comms": True}],
     )
 
     xr_teleop_node = ComposableNode(

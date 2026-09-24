@@ -90,8 +90,7 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
 
   auto log_indices = [&](const char* label, const std::vector<size_t>& idx) {
     for (size_t i : idx)
-      RCLCPP_INFO(logger_, "[%s]   %s: %s",
-                  component_name(), label, info_.joints[i].name.c_str());
+      RCLCPP_INFO(logger_, "[%s]   %s: %s", component_name(), label, info_.joints[i].name.c_str());
   };
   log_indices("left",  left_indices_);
   log_indices("head",  head_indices_);
@@ -143,121 +142,235 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
 // ============================================================
 CallbackReturn DualArmsHardwareInterface::on_configure_impl()
 {
-  const size_t expected = left_indices_.size() + head_indices_.size() + right_indices_.size();
+  // const size_t expected = left_indices_.size() + head_indices_.size() + right_indices_.size();
 
-  const auto deadline = std::chrono::steady_clock::now() +
-                        std::chrono::seconds(configure_timeout_sec_);
+  // const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(configure_timeout_sec_);
 
-  constexpr int MAX_RETRIES = 3;
-  constexpr double zero_epsilon = 1e-6;
+  // constexpr int MAX_RETRIES = 3;
+  // constexpr double zero_epsilon = 1e-6;
 
-  bool got_state = false;
-  int  stable_count = 0;
-  std::vector<float> last_positions;
+  // bool got_state = false;
+  // int  stable_count = 0;
+  // std::vector<float> last_positions;
 
-  while (std::chrono::steady_clock::now() < deadline)
+  constexpr int      timeout_ms  = 2000;   // 每组最多等 2 秒
+  constexpr int      poll_ms     = 20;     // 轮询间隔
+  constexpr double   zero_eps    = 1e-6;
+
+  std::vector<float> left_now;
+  std::vector<float> head_now;
+  std::vector<float> right_now;
+
+  auto wait_for_joint_state = [&](Group group, std::vector<float>& joints, int timeout_ms) -> bool {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+    do 
+    {
+      auto [code, value] = api_->get_joint(group);
+      if (code == RetCode::SUCCESS && !value.empty()) 
+      {
+        joints = std::move(value);
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(poll_ms));
+    } while (std::chrono::steady_clock::now() < deadline);
+
+    return false;
+  };
+
+  // ---- Left arm ----
+  if (!left_indices_.empty())
   {
-    auto [code, positions] = api_->get_joint(Group::ALL);
-
-    RCLCPP_INFO(logger_,
-                "[%s] get_joint(ALL) ret=%d, size=%zu (expected=%zu), stable=%d/%d",
-                component_name(), static_cast<int>(code),
-                positions.size(), expected,
-                stable_count, MAX_RETRIES);
-
-    if (code == RetCode::SUCCESS && positions.size() == expected)
+    if (!wait_for_joint_state(Group::LEFT_ARM, left_now, timeout_ms))
     {
-      bool same_as_last = (last_positions.size() == positions.size());
-      if (same_as_last)
-      {
-        for (size_t k = 0; k < positions.size(); ++k)
-        {
-          if (std::abs(positions[k] - last_positions[k]) > zero_epsilon)
-          {
-            same_as_last = false;
-            break;
-          }
-        }
-      }
-
-      if (same_as_last)
-      {
-        ++stable_count;
-      }
-      else
-      {
-        stable_count = 1;
-        last_positions = positions;
-      }
-
-      if (stable_count >= MAX_RETRIES)
-      {
-        bool all_zero = true;
-        for (float v : positions)
-        {
-          if (std::abs(v) > zero_epsilon) 
-          { 
-            all_zero = false; 
-            break; 
-          }
-        }
-
-        if (all_zero)
-        {
-          RCLCPP_WARN(logger_,
-            "[%s] initial state is ALL ZERO after %d stable samples. "
-            "This usually means rt_control is still at its startup value. "
-            "Check that rt_control is actually simulating / connected.",
-            component_name(), MAX_RETRIES);
-        }
-        else
-        {
-          RCLCPP_INFO(logger_,
-            "[%s] initial state non-zero, using it as command seed",
-            component_name());
-        }
-
-        size_t off = 0;
-        for (size_t i : left_indices_)
-        {
-          hw_position_states_  [i] = positions[off];
-          hw_position_commands_[i] = positions[off];
-          ++off;
-        }
-        for (size_t i : head_indices_)
-        {
-          hw_position_states_  [i] = positions[off];
-          hw_position_commands_[i] = positions[off];
-          ++off;
-        }
-        for (size_t i : right_indices_)
-        {
-          hw_position_states_  [i] = positions[off];
-          hw_position_commands_[i] = positions[off];
-          ++off;
-        }
-
-        got_state = true;
-        break;
-      }
-    }
-    else
-    {
-      stable_count = 0;
-      last_positions.clear();
+      RCLCPP_WARN(logger_, "[%s] no LEFT_ARM state within %d ms", component_name(), timeout_ms);
+      return CallbackReturn::ERROR;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (left_now.size() != left_indices_.size())
+    {
+      RCLCPP_ERROR(logger_, "[%s] LEFT_ARM size mismatch: got %zu, expected %zu",
+        component_name(), left_now.size(), left_indices_.size());
+      return CallbackReturn::ERROR;
+    }
   }
-
-  if (!got_state)
+  // ---- Head ----
+  if (!head_indices_.empty())
   {
-    RCLCPP_WARN(logger_, "[%s] no stable initial state within %d s; read() will keep trying",
-      component_name(), configure_timeout_sec_);
-    return CallbackReturn::ERROR;
+    if (!wait_for_joint_state(Group::HEAD, head_now, timeout_ms))
+    {
+      RCLCPP_WARN(logger_, "[%s] no HEAD state within %d ms", component_name(), timeout_ms);
+      return CallbackReturn::ERROR;
+    }
+
+    if (head_now.size() != head_indices_.size())
+    {
+      RCLCPP_ERROR(logger_, "[%s] HEAD size mismatch: got %zu, expected %zu",
+        component_name(), head_now.size(), head_indices_.size());
+      return CallbackReturn::ERROR;
+    }
   }
 
-  RCLCPP_INFO(logger_, "[%s] initial state captured (stable %d samples)", component_name(), MAX_RETRIES);
+  // ---- Right arm ----
+  if (!right_indices_.empty())
+  {
+    if (!wait_for_joint_state(Group::RIGHT_ARM, right_now, timeout_ms))
+    {
+      RCLCPP_WARN(logger_, "[%s] no RIGHT_ARM state within %d ms", component_name(), timeout_ms);
+      return CallbackReturn::ERROR;
+    }
+    if (right_now.size() != right_indices_.size())
+    {
+      RCLCPP_ERROR(logger_, "[%s] RIGHT_ARM size mismatch: got %zu, expected %zu",
+        component_name(), right_now.size(), right_indices_.size());
+      return CallbackReturn::ERROR;
+    }
+  }
+
+  // ---- write to state and command  ----
+  auto seed = [&](const std::vector<size_t>& idx, const std::vector<float>&  vals)
+  {
+    for (size_t k = 0; k < idx.size(); ++k)
+    {
+      hw_position_states_  [idx[k]] = vals[k];
+      hw_position_commands_[idx[k]] = vals[k];
+    }
+  };
+  seed(left_indices_,  left_now);
+  seed(head_indices_,  head_now);
+  seed(right_indices_, right_now);
+
+  // ---- 全零检查 ----
+  auto all_zero = [](const std::vector<float>& v, double eps) 
+  {
+    for (float x : v)
+      if (std::abs(x) > eps) 
+        return false;
+    return true;
+  };
+
+  RCLCPP_INFO(logger_,
+    "[%s] initial state captured: left=%zu head=%zu right=%zu",
+    component_name(),
+    left_now.size(), head_now.size(), right_now.size());
+
+  if ((left_now .empty() || all_zero(left_now,  zero_eps)) &&
+      (head_now .empty() || all_zero(head_now,  zero_eps)) &&
+      (right_now.empty() || all_zero(right_now, zero_eps)))
+  {
+    RCLCPP_WARN(logger_,
+      "[%s] all initial states are ZERO — rt_control may not be "
+      "simulating / connected, or it is at startup.",
+      component_name());
+  }
+  else
+  {
+    RCLCPP_INFO(logger_, "[%s] non-zero seed applied", component_name());
+  }
+
+  // backup old style do not modify it
+  // while (std::chrono::steady_clock::now() < deadline)
+  // {
+  //   auto [code, positions] = api_->get_joint(Group::ALL);
+
+  //   RCLCPP_INFO(logger_,
+  //               "[%s] get_joint(ALL) ret=%d, size=%zu (expected=%zu), stable=%d/%d",
+  //               component_name(), static_cast<int>(code),
+  //               positions.size(), expected,
+  //               stable_count, MAX_RETRIES);
+
+  //   if (code == RetCode::SUCCESS && positions.size() == expected)
+  //   {
+  //     bool same_as_last = (last_positions.size() == positions.size());
+  //     if (same_as_last)
+  //     {
+  //       for (size_t k = 0; k < positions.size(); ++k)
+  //       {
+  //         if (std::abs(positions[k] - last_positions[k]) > zero_epsilon)
+  //         {
+  //           same_as_last = false;
+  //           break;
+  //         }
+  //       }
+  //     }
+
+  //     if (same_as_last)
+  //     {
+  //       ++stable_count;
+  //     }
+  //     else
+  //     {
+  //       stable_count = 1;
+  //       last_positions = positions;
+  //     }
+
+  //     if (stable_count >= MAX_RETRIES)
+  //     {
+  //       bool all_zero = true;
+  //       for (float v : positions)
+  //       {
+  //         if (std::abs(v) > zero_epsilon) 
+  //         { 
+  //           all_zero = false; 
+  //           break; 
+  //         }
+  //       }
+
+  //       if (all_zero)
+  //       {
+  //         RCLCPP_WARN(logger_,
+  //           "[%s] initial state is ALL ZERO after %d stable samples. "
+  //           "This usually means rt_control is still at its startup value. "
+  //           "Check that rt_control is actually simulating / connected.",
+  //           component_name(), MAX_RETRIES);
+  //       }
+  //       else
+  //       {
+  //         RCLCPP_INFO(logger_,
+  //           "[%s] initial state non-zero, using it as command seed",
+  //           component_name());
+  //       }
+
+  //       size_t off = 0;
+  //       for (size_t i : left_indices_)
+  //       {
+  //         hw_position_states_  [i] = positions[off];
+  //         hw_position_commands_[i] = positions[off];
+  //         ++off;
+  //       }
+  //       for (size_t i : head_indices_)
+  //       {
+  //         hw_position_states_  [i] = positions[off];
+  //         hw_position_commands_[i] = positions[off];
+  //         ++off;
+  //       }
+  //       for (size_t i : right_indices_)
+  //       {
+  //         hw_position_states_  [i] = positions[off];
+  //         hw_position_commands_[i] = positions[off];
+  //         ++off;
+  //       }
+
+  //       got_state = true;
+  //       break;
+  //     }
+  //   }
+  //   else
+  //   {
+  //     stable_count = 0;
+  //     last_positions.clear();
+  //   }
+
+  //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  // }
+
+  // if (!got_state)
+  // {
+  //   RCLCPP_WARN(logger_, "[%s] no stable initial state within %d s; read() will keep trying",
+  //     component_name(), configure_timeout_sec_);
+  //   return CallbackReturn::ERROR;
+  // }
+
+  // RCLCPP_INFO(logger_, "[%s] initial state captured (stable %d samples)", component_name(), MAX_RETRIES);
   return CallbackReturn::SUCCESS;
 }
 
@@ -266,6 +379,8 @@ CallbackReturn DualArmsHardwareInterface::on_configure_impl()
 // ============================================================
 CallbackReturn DualArmsHardwareInterface::on_activate_impl()
 {
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
   const RetCode ret_left = api_->set_group(Group::LEFT_ARM, true);
   if (ret_left != RetCode::SUCCESS)
   {
@@ -532,8 +647,7 @@ hardware_interface::return_type DualArmsHardwareInterface::write(
   std::lock_guard<std::mutex> lock(mutex_);
 
   const auto t_entry = std::chrono::steady_clock::now();
-  const double actual_dt_ms = std::chrono::duration<double, std::milli>(
-      t_entry - last_write_time_).count();
+  const double actual_dt_ms = std::chrono::duration<double, std::milli>(t_entry - last_write_time_).count();
 
   cmd_buffer_.clear();
   cmd_buffer_.reserve(left_indices_.size() + head_indices_.size() + right_indices_.size());
@@ -581,8 +695,7 @@ hardware_interface::return_type DualArmsHardwareInterface::write(
   {
     debug_write_tick_ = 0;
 
-    auto to_str_range = [](const std::vector<float>& v,
-                           size_t from, size_t count) {
+    auto to_str_range = [](const std::vector<float>& v, size_t from, size_t count) {
       std::ostringstream oss;
       oss << std::fixed << std::setprecision(4) << "[";
       for (size_t k = 0; k < count; ++k)
@@ -621,8 +734,7 @@ hardware_interface::return_type DualArmsHardwareInterface::write(
     ++error_streak_;
     if (error_streak_ == 1 || error_streak_ % 100 == 0)
     {
-      RCLCPP_WARN(logger_, "[%s] move_joint(ALL) failed: %d (streak=%d)",
-                  component_name(), static_cast<int>(ret), error_streak_);
+      RCLCPP_WARN(logger_, "[%s] move_joint(ALL) failed: %d (streak=%d)", component_name(), static_cast<int>(ret), error_streak_);
     }
   }
   else
@@ -658,12 +770,12 @@ hardware_interface::return_type DualArmsHardwareInterface::write(
       if (slow_streak == 1 || slow_streak % 100 == 0)
       {
         RCLCPP_WARN(logger_,
-            "[%s] write timing: call=%.2fms period=%.2fms actual_dt=%.2fms "
-            "threshold=%.2fms streak=%d%s%s",
-            component_name(),
-            call_ms, period_ms, actual_dt_ms, threshold_ms, slow_streak,
-            call_slow   ? " [call_slow]" : "",
-            dt_jitter   ? " [dt_jitter]" : "");
+          "[%s] write timing: call=%.2fms period=%.2fms actual_dt=%.2fms "
+          "threshold=%.2fms streak=%d%s%s",
+          component_name(),
+          call_ms, period_ms, actual_dt_ms, threshold_ms, slow_streak,
+          call_slow   ? " [call_slow]" : "",
+          dt_jitter   ? " [dt_jitter]" : "");
       }
     }
     else
@@ -847,9 +959,8 @@ void DualArmsHardwareInterface::start_csv_writer()
     throw;   // 让 on_init 失败，避免"以为启动了实际没启"的隐性错误
   }
 
-  RCLCPP_INFO(logger_,
-              "[%s] CSV writer thread started (queue capacity=%zu)",
-              component_name(), kCsvQueueCapacity);
+  RCLCPP_INFO(logger_, "[%s] CSV writer thread started (queue capacity=%zu)",
+    component_name(), kCsvQueueCapacity);
 }
 
 void DualArmsHardwareInterface::stop_csv_writer()

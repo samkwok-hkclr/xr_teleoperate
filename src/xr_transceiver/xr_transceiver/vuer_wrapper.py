@@ -40,8 +40,8 @@ class VuerWrapper:
 
         self.display_fps = 60
 
-        cert_file = "/home/hkclr/xr_teleop/cert/cert.pem"
-        key_file = "/home/hkclr/xr_teleop/cert/key.pem"
+        cert_file = "/root/xr_teleop/cert/cert.pem"
+        key_file = "/root/xr_teleop/cert/key.pem"
 
         # env_cert = os.getenv("XR_TELEOP_CERT")
         # env_key = os.getenv("XR_TELEOP_KEY")

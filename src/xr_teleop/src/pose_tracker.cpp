@@ -75,8 +75,8 @@ public:
     declare_parameter<double>("lin_tol_y", 0.01);
     declare_parameter<double>("lin_tol_z", 0.01);
     declare_parameter<double>("rot_tol", 0.05);
-    declare_parameter<double>("target_pose_timeout", 0.04);
-    declare_parameter<double>("loop_rate", 50.0);
+    declare_parameter<double>("target_pose_timeout", 0.004);
+    declare_parameter<double>("loop_rate", 100.0);
 
     RCLCPP_INFO(this->get_logger(), "PoseTracker component instantiated.");
   }

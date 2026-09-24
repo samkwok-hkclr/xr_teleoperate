@@ -167,9 +167,12 @@ def generate_launch_description():
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[ros2_controllers_path],
+        parameters=[
+            ros2_controllers_path,
+            moveit_config.robot_description,
+        ],
         remappings=[
-            ("/controller_manager/robot_description", "/robot_description"),
+            ("~/robot_description", "/robot_description"),
         ],
     )
     ld.add_action(ros2_control_node)
@@ -182,6 +185,11 @@ def generate_launch_description():
         "right_gripper_controller",
     ]
 
+    tracking_controller_names = [
+        "left_cartesian_motion_controller",
+        "right_cartesian_motion_controller",
+    ]
+
     for controller in basic_controller_names:
         ld.add_action(
             Node(
@@ -191,6 +199,20 @@ def generate_launch_description():
                     controller,
                     "--controller-manager",
                     "/controller_manager",
+                ],
+            )
+        )
+
+    for controller in tracking_controller_names:
+        ld.add_action(
+            Node(
+                package="controller_manager",
+                executable="spawner",
+                arguments=[
+                    controller,
+                    "--controller-manager",
+                    "/controller_manager",
+                    "--inactive"
                 ],
             )
         )

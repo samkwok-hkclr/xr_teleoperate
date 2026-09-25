@@ -160,18 +160,18 @@ def generate_launch_description():
     # ------------------------------------------------------------------
     # 6. Servo & Teleop Lifecycle Nodes
     # ------------------------------------------------------------------
-    servo_left_params = {
-        "moveit_servo": ParameterBuilder("xr_bringup")
-        .yaml("config/pose_tracking_settings.yaml")
-        .yaml("config/moveit_servo_pose_tracking_left.yaml")
-        .to_dict()
-    }
-    servo_right_params = {
-        "moveit_servo": ParameterBuilder("xr_bringup")
-        .yaml("config/pose_tracking_settings.yaml")
-        .yaml("config/moveit_servo_pose_tracking_right.yaml")
-        .to_dict()
-    }
+    # servo_left_params = {
+    #     "moveit_servo": ParameterBuilder("xr_bringup")
+    #     .yaml("config/pose_tracking_settings.yaml")
+    #     .yaml("config/moveit_servo_pose_tracking_left.yaml")
+    #     .to_dict()
+    # }
+    # servo_right_params = {
+    #     "moveit_servo": ParameterBuilder("xr_bringup")
+    #     .yaml("config/pose_tracking_settings.yaml")
+    #     .yaml("config/moveit_servo_pose_tracking_right.yaml")
+    #     .to_dict()
+    # }
 
     # ------------------------------------------------------------------
     # Composable lifecycle nodes (inside the container)

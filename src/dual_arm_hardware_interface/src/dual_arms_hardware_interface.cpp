@@ -29,8 +29,10 @@ JointSide classify(const std::string& name)
   if (name.size() >= 2)
   {
     const std::string suffix = name.substr(name.size() - 2);
-    if (suffix == "_l") return JointSide::kLeft;
-    if (suffix == "_r") return JointSide::kRight;
+    if (suffix == "_l") 
+      return JointSide::kLeft;
+    if (suffix == "_r") 
+      return JointSide::kRight;
   }
   return JointSide::kHead;
 }
@@ -57,6 +59,8 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
   right_indices_.clear();
   rt_control_states_.assign(n, 0.0);
 
+  cmd_buffer_.reserve(n);
+  last_cmd_buffer_.reserve(n);
 
   for (size_t i = 0; i < n; ++i)
   {
@@ -65,9 +69,15 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
 
     switch (classify(joint.name))
     {
-      case JointSide::kLeft:  left_indices_ .push_back(i); break;
-      case JointSide::kHead:  head_indices_ .push_back(i); break;
-      case JointSide::kRight: right_indices_.push_back(i); break;
+      case JointSide::kLeft:  
+        left_indices_ .push_back(i); 
+        break;
+      case JointSide::kHead:  
+        head_indices_ .push_back(i); 
+        break;
+      case JointSide::kRight: 
+        right_indices_.push_back(i); 
+        break;
     }
   }
 
@@ -99,7 +109,8 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
   // ---- Optional sim flags ----
   auto read_bool = [&](const char* key, bool def) -> bool {
     auto it = info_.hardware_parameters.find(key);
-    if (it == info_.hardware_parameters.end() || it->second.empty()) return def;
+    if (it == info_.hardware_parameters.end() || it->second.empty()) 
+      return def;
     const std::string& v = it->second;
     return (v == "true" || v == "True" || v == "1");
   };
@@ -108,17 +119,24 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
 
   RCLCPP_INFO(logger_, "[%s] sim_left=%d, sim_right=%d",
               component_name(),
-              static_cast<int>(sim_left_), static_cast<int>(sim_right_));
+              static_cast<int>(sim_left_), 
+              static_cast<int>(sim_right_));
 
   auto read_u16 = [&](const char* key, uint16_t def) -> uint16_t {
     auto it = info_.hardware_parameters.find(key);
-    if (it == info_.hardware_parameters.end() || it->second.empty()) return def;
-    try { return static_cast<uint16_t>(std::stoi(it->second)); }
-    catch (...) { return def; }
+    if (it == info_.hardware_parameters.end() || it->second.empty()) 
+      return def;
+    try 
+    { 
+      return static_cast<uint16_t>(std::stoi(it->second)); 
+    }
+    catch (...) 
+    { 
+      return def; 
+    }
   };
 
   trajectory_mode_.store(static_cast<uint8_t>(read_u16("trajectory_mode", 1)));
-
   trajectory_radio_.store(read_u16("trajectory_radio", 15));
 
   RCLCPP_INFO(logger_, "[%s] initial trajectory_mode=%u, radio=%u",
@@ -126,11 +144,8 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
               static_cast<unsigned>(trajectory_mode_.load()),
               static_cast<unsigned>(trajectory_radio_.load()));
 
-  // ---- 启动内嵌 tuner node ----
   start_tuner_node();
 
-  last_write_time_ = std::chrono::steady_clock::now();
-  last_cmd_buffer_.assign(n, 0.0F);
 
   start_csv_writer();
 
@@ -142,17 +157,6 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
 // ============================================================
 CallbackReturn DualArmsHardwareInterface::on_configure_impl()
 {
-  // const size_t expected = left_indices_.size() + head_indices_.size() + right_indices_.size();
-
-  // const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(configure_timeout_sec_);
-
-  // constexpr int MAX_RETRIES = 3;
-  // constexpr double zero_epsilon = 1e-6;
-
-  // bool got_state = false;
-  // int  stable_count = 0;
-  // std::vector<float> last_positions;
-
   constexpr int      timeout_ms  = 2000;   // 每组最多等 2 秒
   constexpr int      poll_ms     = 20;     // 轮询间隔
   constexpr double   zero_eps    = 1e-6;
@@ -227,7 +231,7 @@ CallbackReturn DualArmsHardwareInterface::on_configure_impl()
   }
 
   // ---- write to state and command  ----
-  auto seed = [&](const std::vector<size_t>& idx, const std::vector<float>&  vals)
+  auto seed = [&](const std::vector<size_t>& idx, const std::vector<float>& vals)
   {
     for (size_t k = 0; k < idx.size(); ++k)
     {
@@ -239,7 +243,6 @@ CallbackReturn DualArmsHardwareInterface::on_configure_impl()
   seed(head_indices_,  head_now);
   seed(right_indices_, right_now);
 
-  // ---- 全零检查 ----
   auto all_zero = [](const std::vector<float>& v, double eps) 
   {
     for (float x : v)
@@ -248,10 +251,8 @@ CallbackReturn DualArmsHardwareInterface::on_configure_impl()
     return true;
   };
 
-  RCLCPP_INFO(logger_,
-    "[%s] initial state captured: left=%zu head=%zu right=%zu",
-    component_name(),
-    left_now.size(), head_now.size(), right_now.size());
+  RCLCPP_INFO(logger_, "[%s] initial state captured: left=%zu head=%zu right=%zu",
+    component_name(), left_now.size(), head_now.size(), right_now.size());
 
   if ((left_now .empty() || all_zero(left_now,  zero_eps)) &&
       (head_now .empty() || all_zero(head_now,  zero_eps)) &&
@@ -266,111 +267,7 @@ CallbackReturn DualArmsHardwareInterface::on_configure_impl()
   {
     RCLCPP_INFO(logger_, "[%s] non-zero seed applied", component_name());
   }
-
-  // backup old style do not modify it
-  // while (std::chrono::steady_clock::now() < deadline)
-  // {
-  //   auto [code, positions] = api_->get_joint(Group::ALL);
-
-  //   RCLCPP_INFO(logger_,
-  //               "[%s] get_joint(ALL) ret=%d, size=%zu (expected=%zu), stable=%d/%d",
-  //               component_name(), static_cast<int>(code),
-  //               positions.size(), expected,
-  //               stable_count, MAX_RETRIES);
-
-  //   if (code == RetCode::SUCCESS && positions.size() == expected)
-  //   {
-  //     bool same_as_last = (last_positions.size() == positions.size());
-  //     if (same_as_last)
-  //     {
-  //       for (size_t k = 0; k < positions.size(); ++k)
-  //       {
-  //         if (std::abs(positions[k] - last_positions[k]) > zero_epsilon)
-  //         {
-  //           same_as_last = false;
-  //           break;
-  //         }
-  //       }
-  //     }
-
-  //     if (same_as_last)
-  //     {
-  //       ++stable_count;
-  //     }
-  //     else
-  //     {
-  //       stable_count = 1;
-  //       last_positions = positions;
-  //     }
-
-  //     if (stable_count >= MAX_RETRIES)
-  //     {
-  //       bool all_zero = true;
-  //       for (float v : positions)
-  //       {
-  //         if (std::abs(v) > zero_epsilon) 
-  //         { 
-  //           all_zero = false; 
-  //           break; 
-  //         }
-  //       }
-
-  //       if (all_zero)
-  //       {
-  //         RCLCPP_WARN(logger_,
-  //           "[%s] initial state is ALL ZERO after %d stable samples. "
-  //           "This usually means rt_control is still at its startup value. "
-  //           "Check that rt_control is actually simulating / connected.",
-  //           component_name(), MAX_RETRIES);
-  //       }
-  //       else
-  //       {
-  //         RCLCPP_INFO(logger_,
-  //           "[%s] initial state non-zero, using it as command seed",
-  //           component_name());
-  //       }
-
-  //       size_t off = 0;
-  //       for (size_t i : left_indices_)
-  //       {
-  //         hw_position_states_  [i] = positions[off];
-  //         hw_position_commands_[i] = positions[off];
-  //         ++off;
-  //       }
-  //       for (size_t i : head_indices_)
-  //       {
-  //         hw_position_states_  [i] = positions[off];
-  //         hw_position_commands_[i] = positions[off];
-  //         ++off;
-  //       }
-  //       for (size_t i : right_indices_)
-  //       {
-  //         hw_position_states_  [i] = positions[off];
-  //         hw_position_commands_[i] = positions[off];
-  //         ++off;
-  //       }
-
-  //       got_state = true;
-  //       break;
-  //     }
-  //   }
-  //   else
-  //   {
-  //     stable_count = 0;
-  //     last_positions.clear();
-  //   }
-
-  //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  // }
-
-  // if (!got_state)
-  // {
-  //   RCLCPP_WARN(logger_, "[%s] no stable initial state within %d s; read() will keep trying",
-  //     component_name(), configure_timeout_sec_);
-  //   return CallbackReturn::ERROR;
-  // }
-
-  // RCLCPP_INFO(logger_, "[%s] initial state captured (stable %d samples)", component_name(), MAX_RETRIES);
+  
   return CallbackReturn::SUCCESS;
 }
 
@@ -480,8 +377,7 @@ CallbackReturn DualArmsHardwareInterface::on_shutdown_impl()
 // ============================================================
 // export_state_interfaces
 // ============================================================
-std::vector<hardware_interface::StateInterface>
-DualArmsHardwareInterface::export_state_interfaces()
+std::vector<hardware_interface::StateInterface> DualArmsHardwareInterface::export_state_interfaces()
 {
   std::vector<hardware_interface::StateInterface> out;
   out.reserve(info_.joints.size() * 3);
@@ -508,8 +404,7 @@ DualArmsHardwareInterface::export_state_interfaces()
 // ============================================================
 // export_command_interfaces
 // ============================================================
-std::vector<hardware_interface::CommandInterface>
-DualArmsHardwareInterface::export_command_interfaces()
+std::vector<hardware_interface::CommandInterface> DualArmsHardwareInterface::export_command_interfaces()
 {
   std::vector<hardware_interface::CommandInterface> out;
   out.reserve(info_.joints.size());
@@ -605,7 +500,7 @@ hardware_interface::return_type DualArmsHardwareInterface::read(
   // ---- Step 4: effort ----
   // for (size_t i = 0; i < hw_effort_states_.size(); ++i)
   //   hw_effort_states_[i] = 0.0;
-
+  
   // ---- Step 5 ----
   if (++debug_read_tick_ >= debug_every_n_)
   {
@@ -617,7 +512,8 @@ hardware_interface::return_type DualArmsHardwareInterface::read(
       for (size_t k = 0; k < idx.size(); ++k)
       {
         oss << hw_position_states_[idx[k]];
-        if (k + 1 < idx.size()) oss << ", ";
+        if (k + 1 < idx.size()) 
+          oss << ", ";
       }
       oss << "]";
       return oss.str();
@@ -637,56 +533,70 @@ hardware_interface::return_type DualArmsHardwareInterface::read(
 // write
 // ============================================================
 hardware_interface::return_type DualArmsHardwareInterface::write(
-    const rclcpp::Time& /* time */, const rclcpp::Duration& period)
+  const rclcpp::Time& /* time */, const rclcpp::Duration& period)
 {
   if (!api_ || !is_active())
   {
     return hardware_interface::return_type::OK;
   }
 
-  std::lock_guard<std::mutex> lock(mutex_);
-
+  static thread_local std::chrono::steady_clock::time_point prev_entry{};
   const auto t_entry = std::chrono::steady_clock::now();
-  const double actual_dt_ms = std::chrono::duration<double, std::milli>(t_entry - last_write_time_).count();
 
-  cmd_buffer_.clear();
-  cmd_buffer_.reserve(left_indices_.size() + head_indices_.size() + right_indices_.size());
-
-  // ---- Left arm ----
-  for (size_t i : left_indices_)
+  double actual_dt_ms = 0.0;
+  if (prev_entry.time_since_epoch().count() != 0)
   {
-    if (sim_left_)
-      cmd_buffer_.push_back(static_cast<float>(rt_control_states_[i]));
-    else
-      cmd_buffer_.push_back(static_cast<float>(hw_position_commands_[i]));
+    actual_dt_ms = std::chrono::duration<double, std::milli>(t_entry - prev_entry).count();
   }
+  prev_entry = t_entry;
 
-  // ---- Head ----
-  for (size_t i : head_indices_)
   {
-    cmd_buffer_.push_back(static_cast<float>(hw_position_commands_[i]));
-  }
+    std::lock_guard<std::mutex> lock(mutex_);
+    const size_t expected = left_indices_.size() + head_indices_.size() + right_indices_.size();
+    cmd_buffer_.resize(expected);
 
-  // ---- Right arm ----
-  for (size_t i : right_indices_)
-  {
-    if (sim_right_)
-      cmd_buffer_.push_back(static_cast<float>(rt_control_states_[i]));
-    else
-      cmd_buffer_.push_back(static_cast<float>(hw_position_commands_[i]));
-  }
+    size_t k = 0;
 
-  if (delta_pub_ && delta_pub_->get_subscription_count() > 0)
-  {
-    auto msg = std_msgs::msg::Float32MultiArray();
-    msg.data.resize(cmd_buffer_.size());
-    for (size_t k = 0; k < cmd_buffer_.size(); ++k)
+    for (size_t i : left_indices_)
     {
-      msg.data[k] = cmd_buffer_[k] - last_cmd_buffer_[k];
+      cmd_buffer_[k++] = sim_left_ 
+        ? static_cast<float>(rt_control_states_[i])
+        : static_cast<float>(hw_position_commands_[i]);
     }
-    delta_pub_->publish(msg);
+
+    for (size_t i : head_indices_)
+    {
+      cmd_buffer_[k++] = static_cast<float>(hw_position_commands_[i]);
+    }
+
+    for (size_t i : right_indices_)
+    {
+      cmd_buffer_[k++] = sim_right_
+        ? static_cast<float>(rt_control_states_[i])
+        : static_cast<float>(hw_position_commands_[i]);
+    }
   }
-  last_cmd_buffer_ = cmd_buffer_;
+
+  if (delta_pub_)
+  {
+    if (++delta_sub_check_tick_ >= 100)
+    {
+      delta_sub_check_tick_ = 0;
+      delta_has_sub_ = (delta_pub_->get_subscription_count() > 0);
+    }
+
+    if (delta_has_sub_)
+    {
+      auto msg = std_msgs::msg::Float32MultiArray();
+      const size_t n = cmd_buffer_.size();
+      msg.data.resize(n);
+      for (size_t k = 0; k < n; ++k)
+      {
+        msg.data[k] = cmd_buffer_[k] - last_cmd_buffer_[k];
+      }
+      delta_pub_->publish(msg);
+    }
+  }
 
   const uint8_t  mode  = trajectory_mode_.load();
   const uint16_t radio = trajectory_radio_.load();
@@ -694,35 +604,34 @@ hardware_interface::return_type DualArmsHardwareInterface::write(
   if (++debug_write_tick_ >= debug_every_n_)
   {
     debug_write_tick_ = 0;
+    char buf_l[256], buf_h[256], buf_r[256];
 
-    auto to_str_range = [](const std::vector<float>& v, size_t from, size_t count) {
-      std::ostringstream oss;
-      oss << std::fixed << std::setprecision(4) << "[";
-      for (size_t k = 0; k < count; ++k)
+    auto write_arr = [](char* buf, size_t buflen, const std::vector<float>& v,
+                        size_t from, size_t count) {
+      size_t pos = 0;
+      pos += std::snprintf(buf + pos, buflen - pos, "[");
+      for (size_t k = 0; k < count && pos < buflen - 16; ++k)
       {
-        oss << v[from + k];
-        if (k + 1 < count) 
-          oss << ", ";
+        pos += std::snprintf(buf + pos, buflen - pos, "%s%.4f", (k ? ", " : ""), v[from + k]);
       }
-      oss << "]";
-      return oss.str();
+      std::snprintf(buf + pos, buflen - pos, "]");
     };
 
     const size_t n_left  = left_indices_.size();
     const size_t n_head  = head_indices_.size();
     const size_t n_right = right_indices_.size();
-
     const size_t off_left  = 0;
     const size_t off_head  = off_left + n_left;
     const size_t off_right = off_head + n_head;
 
-    RCLCPP_INFO(logger_, "[%s] write:\n  left:  %s\n  head:  %s\n  right: %s mode: %d radio: %d",
-                component_name(),
-                to_str_range(cmd_buffer_, off_left,  n_left ).c_str(),
-                to_str_range(cmd_buffer_, off_head,  n_head ).c_str(),
-                to_str_range(cmd_buffer_, off_right, n_right).c_str(),
-                mode,
-                radio);
+    write_arr(buf_l, sizeof(buf_l), cmd_buffer_, off_left,  n_left );
+    write_arr(buf_h, sizeof(buf_h), cmd_buffer_, off_head,  n_head );
+    write_arr(buf_r, sizeof(buf_r), cmd_buffer_, off_right, n_right);
+
+    RCLCPP_INFO(logger_,
+      "[%s] write:\n  left:  %s\n  head:  %s\n  right: %s mode: %u radio: %u",
+      component_name(), buf_l, buf_h, buf_r,
+      static_cast<unsigned>(mode), static_cast<unsigned>(radio));
   }
 
   const auto t0 = std::chrono::steady_clock::now();
@@ -745,42 +654,97 @@ hardware_interface::return_type DualArmsHardwareInterface::write(
   const double call_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
   const double period_ms    = period.seconds() * 1000.0;
   const double threshold_ms = period_ms * 1.5;
-
-  if (timing_pub_ && timing_pub_->get_subscription_count() > 0)
+  if (timing_pub_)
   {
-    auto msg = std_msgs::msg::Float32MultiArray();
-    msg.data.resize(4);
-    msg.data[0] = static_cast<float>(call_ms);
-    msg.data[1] = static_cast<float>(period_ms);
-    msg.data[2] = static_cast<float>(threshold_ms);
-    msg.data[3] = static_cast<float>(actual_dt_ms);
-    timing_pub_->publish(msg);
+    if (++timing_sub_check_tick_ >= 100)
+    {
+      timing_sub_check_tick_ = 0;
+      timing_has_sub_ = (timing_pub_->get_subscription_count() > 0);
+    }
+
+    if (timing_has_sub_)
+    {
+      auto msg = std_msgs::msg::Float32MultiArray();
+      msg.data.resize(4);
+      msg.data[0] = static_cast<float>(call_ms);
+      msg.data[1] = static_cast<float>(period_ms);
+      msg.data[2] = static_cast<float>(threshold_ms);
+      msg.data[3] = static_cast<float>(actual_dt_ms);
+      timing_pub_->publish(msg);
+    }
   }
 
   {
-    static thread_local int slow_streak = 0;
-    const bool call_slow = call_ms >= threshold_ms;
+    static thread_local std::array<double, 100> dt_history{};
+    static thread_local std::array<double, 100> call_history{};
+    static thread_local size_t dt_idx    = 0;
+    static thread_local size_t dt_filled = 0;
 
-    // |actual_dt - period| > 5% period
-    const bool dt_jitter = std::abs(actual_dt_ms - period_ms) > (period_ms * 0.05);
+    dt_history  [dt_idx] = actual_dt_ms;
+    call_history[dt_idx] = call_ms;
 
-    if (call_slow || dt_jitter)
+    ++dt_idx;
+    if (dt_filled < dt_history.size()) 
+      ++dt_filled;
+
+    if (dt_idx >= dt_history.size())
     {
-      ++slow_streak;
-      if (slow_streak == 1 || slow_streak % 100 == 0)
+      dt_idx = 0;
+
+      // ---- 计算统计量 ----
+      double dt_sum = 0.0, dt_sum2 = 0.0, dt_max = 0.0, dt_min = 1e9;
+      double cl_sum = 0.0, cl_max = 0.0;
+
+      const size_t n = dt_filled;
+
+      for (size_t i = 0; i < n; ++i)
+      {
+        const double d = dt_history[i];
+        const double c = call_history[i];
+
+        dt_sum  += d;
+        dt_sum2 += d * d;
+        if (d > dt_max) dt_max = d;
+        if (d < dt_min) dt_min = d;
+
+        cl_sum += c;
+        if (c > cl_max) cl_max = c;
+      }
+
+      const double dt_mean = dt_sum / n;
+      const double dt_var  = std::max(0.0, dt_sum2 / n - dt_mean * dt_mean);
+      const double dt_sd   = std::sqrt(dt_var);
+      const double cl_mean = cl_sum / n;
+
+      // ---- 判断健康度 ----
+      // 均值偏离 period > 15%，或标准差 > 10% period，或 max > 2× period → 告警
+      const bool mean_drift = std::abs(dt_mean - period_ms) > (period_ms * 0.15);
+      const bool high_sd    = dt_sd > (period_ms * 0.10);
+      const bool tail_spike = dt_max > (period_ms * 2.0);
+
+      if (mean_drift || high_sd || tail_spike)
       {
         RCLCPP_WARN(logger_,
-          "[%s] write timing: call=%.2fms period=%.2fms actual_dt=%.2fms "
-          "threshold=%.2fms streak=%d%s%s",
-          component_name(),
-          call_ms, period_ms, actual_dt_ms, threshold_ms, slow_streak,
-          call_slow   ? " [call_slow]" : "",
-          dt_jitter   ? " [dt_jitter]" : "");
+          "[%s] write dt stats (N=%zu): "
+          "mean=%.2f sd=%.2f min=%.2f max=%.2f ms (period=%.2f) | "
+          "call mean=%.2f max=%.2f ms%s%s%s",
+          component_name(), n,
+          dt_mean, dt_sd, dt_min, dt_max, period_ms,
+          cl_mean, cl_max,
+          mean_drift ? " [mean_drift]" : "",
+          high_sd    ? " [high_sd]" : "",
+          tail_spike ? " [tail_spike]" : "");
       }
-    }
-    else
-    {
-      slow_streak = 0;
+      else
+      {
+        RCLCPP_DEBUG(logger_,
+          "[%s] write dt stats (N=%zu): "
+          "mean=%.2f sd=%.2f min=%.2f max=%.2f ms (period=%.2f) | "
+          "call mean=%.2f max=%.2f ms",
+          component_name(), n,
+          dt_mean, dt_sd, dt_min, dt_max, period_ms,
+          cl_mean, cl_max);
+      }
     }
   }
 
@@ -789,16 +753,22 @@ hardware_interface::return_type DualArmsHardwareInterface::write(
     CsvRow row{};
     row.t_s = std::chrono::duration<double>(t1.time_since_epoch()).count();
 
-    // 左臂 7 关节（不足填 NaN）
     const size_t n_left  = left_indices_.size();
     const size_t n_right = right_indices_.size();
     const size_t off_right = n_left + head_indices_.size();
 
-    for (size_t k = 0; k < 7; ++k)
-      row.left[k] = (k < n_left) ? cmd_buffer_[k] : std::numeric_limits<float>::quiet_NaN();
-
-    for (size_t k = 0; k < 7; ++k)
-      row.right[k] = (k < n_right) ? cmd_buffer_[off_right + k] : std::numeric_limits<float>::quiet_NaN();
+    if (n_left == 7 && n_right == 7)
+    {
+      std::memcpy(row.left,  cmd_buffer_.data() + 0,         7 * sizeof(float));
+      std::memcpy(row.right, cmd_buffer_.data() + off_right, 7 * sizeof(float));
+    }
+    else                               // 慢路径（可变关节数）
+    {
+      for (size_t k = 0; k < 7; ++k)
+        row.left[k] = (k < n_left) ? cmd_buffer_[k] : std::numeric_limits<float>::quiet_NaN();
+      for (size_t k = 0; k < 7; ++k)
+        row.right[k] = (k < n_right) ? cmd_buffer_[off_right + k] : std::numeric_limits<float>::quiet_NaN();
+    }
 
     row.follow = 1;   // follow=true 固定
     row.mode   = mode;
@@ -810,7 +780,7 @@ hardware_interface::return_type DualArmsHardwareInterface::write(
     }
   }
 
-  last_write_time_ = std::chrono::steady_clock::now();
+  std::swap(cmd_buffer_, last_cmd_buffer_);
 
   return hardware_interface::return_type::OK;
 }
@@ -861,7 +831,6 @@ void DualArmsHardwareInterface::start_tuner_node()
         return;
       }
 
-      // ---- radio: 0..999，clamp 到 mode 对应的合法范围 ----
       int32_t raw_radio = msg->data[1];
       uint16_t clamped_radio;
       if (raw_mode == 1)
@@ -904,9 +873,8 @@ void DualArmsHardwareInterface::start_tuner_node()
     }
   });
 
-  RCLCPP_INFO(logger_,
-              "[%s] tuner node '%s' started (topic: %s, format: [mode, radio])",
-              component_name(), node_name.c_str(), tuner_topic.c_str());
+  RCLCPP_INFO(logger_, "[%s] tuner node '%s' started (topic: %s, format: [mode, radio])",
+    component_name(), node_name.c_str(), tuner_topic.c_str());
 }
 
 void DualArmsHardwareInterface::stop_tuner_node()
@@ -1010,7 +978,6 @@ void DualArmsHardwareInterface::csv_writer_loop()
 
         csv_queue_.consume_all([](const CsvRow&){});
 
-        // 3. 构建带时间戳的文件名
         const auto sys_now = std::chrono::system_clock::now();
         const std::time_t tt = std::chrono::system_clock::to_time_t(sys_now);
         std::tm tm_buf{};
@@ -1034,39 +1001,34 @@ void DualArmsHardwareInterface::csv_writer_loop()
         else
         {
           file << "idx,timestamp_s";
-          for (int j = 1; j <= 7; ++j) file << ",left_j"  << j;
-          for (int j = 1; j <= 7; ++j) file << ",right_j" << j;
+          for (int j = 1; j <= 7; ++j) 
+            file << ",left_j"  << j;
+          for (int j = 1; j <= 7; ++j) 
+            file << ",right_j" << j;
           file << ",follow,mode,radio\n";
           file << std::fixed << std::setprecision(6);
 
-          // ★ 表头立即落盘 —— 崩溃时文件至少有表头
           file.flush();
 
           if (file.fail())
           {
-            RCLCPP_ERROR(logger_,
-                "[%s] CSV header flush failed: %s",
-                component_name(), path.c_str());
+            RCLCPP_ERROR(logger_, "[%s] CSV header flush failed: %s", component_name(), path.c_str());
             file.close();
             csv_requested_.store(false, std::memory_order_release);
           }
           else
           {
-            // 6. 重置 session 状态
             row_idx = 0;
             writes_since_flush = 0;
-            session_start_s = std::chrono::duration<double>(
-                std::chrono::steady_clock::now().time_since_epoch()).count();
+            session_start_s = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
             file_open = true;
 
             csv_path_ = path;
             csv_dropped_.store(0, std::memory_order_relaxed);
 
-            // 7. 开闸门 → RT 开始 push
             csv_is_open_.store(true, std::memory_order_release);
 
-            RCLCPP_INFO(logger_, "[%s] CSV log STARTED: %s",
-                        component_name(), path.c_str());
+            RCLCPP_INFO(logger_, "[%s] CSV log STARTED: %s", component_name(), path.c_str());
           }
         }
       }
@@ -1076,10 +1038,8 @@ void DualArmsHardwareInterface::csv_writer_loop()
       // ------------------------------------------------------------
       else if (!want && file_open)
       {
-        // 1. 关闸门 → RT 停止 push
         csv_is_open_.store(false, std::memory_order_release);
 
-        // 2. 排空队列剩余行
         while (csv_queue_.pop(row))
         {
           const double ts_s = row.t_s - session_start_s;
@@ -1093,7 +1053,6 @@ void DualArmsHardwareInterface::csv_writer_loop()
                << '\n';
         }
 
-        // 3. flush + close
         file.flush();
         const bool write_ok = !file.fail();
         file.close();
@@ -1101,21 +1060,15 @@ void DualArmsHardwareInterface::csv_writer_loop()
 
         if (!write_ok)
         {
-          RCLCPP_ERROR(logger_,
-              "[%s] CSV flush failed on close: %s (%zu rows written)",
-              component_name(), path.c_str(), row_idx);
+          RCLCPP_ERROR(logger_, "[%s] CSV flush failed on close: %s (%zu rows written)",
+            component_name(), path.c_str(), row_idx);
         }
 
-        RCLCPP_INFO(logger_,
-            "[%s] CSV log STOPPED: %s (%zu rows, %lu dropped)",
-            component_name(), path.c_str(), row_idx,
-            static_cast<unsigned long>(
-                csv_dropped_.load(std::memory_order_relaxed)));
+        RCLCPP_INFO(logger_, "[%s] CSV log STOPPED: %s (%zu rows, %lu dropped)",
+          component_name(), path.c_str(), row_idx,
+          static_cast<unsigned long>(csv_dropped_.load(std::memory_order_relaxed)));
       }
 
-      // ------------------------------------------------------------
-      // 批量消费（正常路径）
-      // ------------------------------------------------------------
       if (file_open)
       {
         int processed = 0;
@@ -1124,8 +1077,10 @@ void DualArmsHardwareInterface::csv_writer_loop()
           const double ts_s = row.t_s - session_start_s;
 
           file << row_idx++ << ',' << ts_s;
-          for (int k = 0; k < 7; ++k) file << ',' << row.left[k];
-          for (int k = 0; k < 7; ++k) file << ',' << row.right[k];
+          for (int k = 0; k < 7; ++k) 
+            file << ',' << row.left[k];
+          for (int k = 0; k < 7; ++k) 
+            file << ',' << row.right[k];
           file << ',' << static_cast<int>(row.follow)
                << ',' << static_cast<int>(row.mode)
                << ',' << static_cast<int>(row.radio)
@@ -1142,9 +1097,8 @@ void DualArmsHardwareInterface::csv_writer_loop()
 
             if (file.fail())
             {
-              RCLCPP_ERROR(logger_,
-                  "[%s] CSV write failed after %zu rows; closing session",
-                  component_name(), row_idx);
+              RCLCPP_ERROR(logger_, "[%s] CSV write failed after %zu rows; closing session",
+                component_name(), row_idx);
               csv_is_open_.store(false, std::memory_order_release);
               file.close();
               file_open = false;
@@ -1185,23 +1139,21 @@ void DualArmsHardwareInterface::csv_writer_loop()
     std::this_thread::sleep_for(std::chrono::milliseconds(kPollMs));
   }
 
-  // ============================================================
-  // 线程退出：若文件仍打开，flush + close
-  // ============================================================
   try
   {
     if (file_open)
     {
       csv_is_open_.store(false, std::memory_order_release);
 
-      // 排空队列
       while (csv_queue_.pop(row))
       {
         const double ts_s = row.t_s - session_start_s;
 
         file << row_idx++ << ',' << ts_s;
-        for (int k = 0; k < 7; ++k) file << ',' << row.left[k];
-        for (int k = 0; k < 7; ++k) file << ',' << row.right[k];
+        for (int k = 0; k < 7; ++k) 
+          file << ',' << row.left[k];
+        for (int k = 0; k < 7; ++k) 
+          file << ',' << row.right[k];
         file << ',' << static_cast<int>(row.follow)
              << ',' << static_cast<int>(row.mode)
              << ',' << static_cast<int>(row.radio)
@@ -1215,15 +1167,13 @@ void DualArmsHardwareInterface::csv_writer_loop()
 
       if (!write_ok)
       {
-        RCLCPP_ERROR(logger_,
-            "[%s] CSV flush failed on shutdown: %s (%zu rows)",
-            component_name(), path.c_str(), row_idx);
+        RCLCPP_ERROR(logger_, "[%s] CSV flush failed on shutdown: %s (%zu rows)",
+          component_name(), path.c_str(), row_idx);
       }
       else
       {
-        RCLCPP_INFO(logger_,
-            "[%s] CSV log closed on shutdown: %s (%zu rows)",
-            component_name(), path.c_str(), row_idx);
+        RCLCPP_INFO(logger_, "[%s] CSV log closed on shutdown: %s (%zu rows)",
+          component_name(), path.c_str(), row_idx);
       }
     }
   }
@@ -1243,5 +1193,5 @@ void DualArmsHardwareInterface::csv_writer_loop()
 // pluginlib 
 // ============================================================
 PLUGINLIB_EXPORT_CLASS(
-    dual_arm_hardware_interface::DualArmsHardwareInterface,
-    hardware_interface::SystemInterface)
+  dual_arm_hardware_interface::DualArmsHardwareInterface,
+  hardware_interface::SystemInterface)

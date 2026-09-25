@@ -46,14 +46,14 @@ left_cartesian_motion_controller:
       - position
     solver:
         error_scale: 1.0
-        iterations: 15
+        iterations: 20
     pd_gains:
-      trans_x: {p: 6.7, d: 0.5}
-      trans_y: {p: 6.7, d: 0.5}
-      trans_z: {p: 6.7, d: 0.5}
-      rot_x: {p: 5.7, d: 0.3}
-      rot_y: {p: 5.7, d: 0.3}
-      rot_z: {p: 5.7, d: 0.3}
+      trans_x: {p: 6.5, d: 0.7}
+      trans_y: {p: 6.5, d: 0.7}
+      trans_z: {p: 6.5, d: 0.7}
+      rot_x: {p: 5.7, d: 0.5}
+      rot_y: {p: 5.7, d: 0.5}
+      rot_z: {p: 5.7, d: 0.5}
 
 right_cartesian_motion_controller:
   ros__parameters:
@@ -71,14 +71,14 @@ right_cartesian_motion_controller:
       - position
     solver:
       error_scale: 1.0
-      iterations: 15
+      iterations: 20
     pd_gains:
-      trans_x: {p: 6.7, d: 0.5}
-      trans_y: {p: 6.7, d: 0.5}
-      trans_z: {p: 6.7, d: 0.5}
-      rot_x: {p: 5.7, d: 0.3}
-      rot_y: {p: 5.7, d: 0.3}
-      rot_z: {p: 5.7, d: 0.3}
+      trans_x: {p: 6.5, d: 0.7}
+      trans_y: {p: 6.5, d: 0.7}
+      trans_z: {p: 6.5, d: 0.7}
+      rot_x: {p: 5.7, d: 0.5}
+      rot_y: {p: 5.7, d: 0.5}
+      rot_z: {p: 5.7, d: 0.5}
 
 left_arm_controller:
   ros__parameters:

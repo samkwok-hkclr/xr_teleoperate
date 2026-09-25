@@ -10,6 +10,8 @@
 #include <iomanip>
 #include <chrono>
 #include <thread>
+#include <array>
+#include <cmath>
 #include <boost/lockfree/spsc_queue.hpp>
 
 #include <rclcpp/macros.hpp>
@@ -106,6 +108,8 @@ protected:
   void stop_csv_writer();
   void csv_writer_loop();
 
+  std::mutex mutex_;
+
   // ---- Joint classification (indices into info_.joints) ----
   std::vector<size_t> left_indices_;    // SDK arm[0]
   std::vector<size_t> head_indices_;    // SDK arm[1]
@@ -121,8 +125,9 @@ protected:
   std::vector<double> rt_control_states_;
 
   // ---- Combined command buffer in SDK order (left + head + right) ----
-  std::vector<float> cmd_buffer_;
-
+  std::vector<float>                    cmd_buffer_;
+  std::vector<float>                    last_cmd_buffer_;
+  
   // ---- Optional per-side simulation (for mixed real/sim testing) ----
   // If sim_left  is true, the left  arm is held at its current feedback
   // position and its command interfaces are ignored.
@@ -134,12 +139,13 @@ protected:
   int debug_write_tick_{0};
   int debug_every_n_{500};        // 每 100 次 = 1 Hz
 
-  std::mutex mutex_;
-  int error_streak_{0};
-  int configure_timeout_sec_{5};
+  int delta_sub_check_tick_{0};
+  bool delta_has_sub_{false};
+  
+  int timing_sub_check_tick_{0};
+  bool timing_has_sub_{false};
 
-  std::chrono::steady_clock::time_point last_write_time_{};
-  std::vector<float>                    last_cmd_buffer_;
+  int error_streak_{0};
 
   std::atomic<uint8_t>  trajectory_mode_{2};
   std::atomic<uint16_t> trajectory_radio_{500};
@@ -150,9 +156,8 @@ protected:
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr  delta_pub_;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr  timing_pub_;
   rclcpp::Subscription<std_msgs::msg::Int16MultiArray>::SharedPtr tuner_sub_;
-  std::atomic<bool>                                            tuner_running_{false};
-
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr            csv_enable_sub_;
+  std::atomic<bool>                                            tuner_running_{false};
 
   std::thread           csv_writer_thread_;
   std::atomic<bool>     csv_writer_running_{false};

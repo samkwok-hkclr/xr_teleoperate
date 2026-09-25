@@ -78,9 +78,7 @@ protected:
     // 20 Hz state-machine timer
     const auto period_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::duration<double>(1.0 / poll_rate_hz_));
-    timer_ = this->create_wall_timer(
-      period_ns,
-      std::bind(&PoseTrackingWrapper::process_pending, this));
+    timer_ = this->create_wall_timer(period_ns, std::bind(&PoseTrackingWrapper::process_pending, this));
 
     warn_off_timer_ = this->create_wall_timer(
       std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(warn_pulse_sec_)),
@@ -200,7 +198,9 @@ private:
         /*activate=*/{cartesian_ctrl_},
         /*deactivate=*/{arm_ctrl_},
         "enter Cartesian pose tracking",
-        /*on_success=*/[this]() { publish_warn(true); });
+        /*on_success=*/[this]() { 
+          publish_warn(true); 
+        });
     }
     else if (a == Action::ToJointTrajectory) 
     {
@@ -236,7 +236,6 @@ private:
     RCLCPP_INFO(get_logger(), "Published %s on %s", value ? "true" : "false", warn_topic_.c_str());
 
     // Pulse behaviour: whenever we vibrate (true), schedule a stop (false)
-    // 0.5 s later. Re-arming on a new true edge restarts the 0.5 s window.
     if (value && warn_off_timer_) 
     {
       warn_off_timer_->reset();   // un-cancels + sets next fire to now + 500 ms
@@ -312,8 +311,8 @@ private:
   }
 
   void do_switch(
-    const std::vector<std::string> & activate,
-    const std::vector<std::string> & deactivate,
+    const std::vector<std::string>& activate,
+    const std::vector<std::string>& deactivate,
     const std::string & reason,
     SuccessCb on_success)
   {

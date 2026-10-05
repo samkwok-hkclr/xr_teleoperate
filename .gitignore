@@ -3,3 +3,6 @@ build/
 install/
 log/
 backup/
+src/agx_arm_ros/
+src/piper_cpp/
+src/piper_cpp_remote/

@@ -39,6 +39,8 @@ public:
     declare_parameter<double>("y_scale_factor", 1.0);
     declare_parameter<double>("z_scale_factor", 1.0);
     declare_parameter<double>("target_pose_max_age_s", 0.5);
+    declare_parameter<double>("button_hold_duration", 0.5);
+    declare_parameter<std::string>("reference_frame", "base_link");
     declare_parameter<std::vector<std::string>>("xr_reference_data", std::vector<std::string>{});
     declare_parameter<std::vector<std::string>>("tcp", std::vector<std::string>{});
     declare_parameter<std::vector<std::string>>("k_sources", std::vector<std::string>{});
@@ -51,6 +53,8 @@ public:
   CallbackReturn on_configure(const rclcpp_lifecycle::State &) override
   {
     max_age_s_ = get_parameter("target_pose_max_age_s").as_double();
+    button_hold_duration_ = get_parameter("button_hold_duration").as_double();
+    ref_frame_ = get_parameter("reference_frame").as_string();
 
     // Pull every parameter up front so all failures can report actual values.
     const auto tcp           = get_parameter("tcp").as_string_array();
@@ -140,9 +144,9 @@ public:
         btn_a_callback);
     }
 
-    // Create a 100Hz timer, but keep it cancelled until activated
+    // Create a 50 Hz timer, but keep it cancelled until activated
     tf_timer_ = this->create_wall_timer(
-      std::chrono::milliseconds(10), 
+      std::chrono::milliseconds(20), 
       std::bind(&XrTeleop::tf_timer_cb, this));
     tf_timer_->cancel();
 
@@ -167,7 +171,6 @@ public:
     return CallbackReturn::SUCCESS;
   }
 
-  // I cannot call ros2 lifecycle set /xr_teleop deactivate. why?
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State &) override
   {
     // Pause operations
@@ -202,8 +205,8 @@ public:
 
     // Clear state tracking maps
     is_initial_recorded_.clear();
-    t_begin_.clear();
-    t_zero_.clear();
+    tf_begin_.clear();
+    tf_zero_.clear();
     press_start_time_.clear();
     was_pressed_.clear();
     enabled_.clear();
@@ -243,7 +246,7 @@ private:
         RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000, "traget frame is empty");
         continue;
       }
-      auto tf_opt = get_tf("base_link", frame);
+      auto tf_opt = get_tf(ref_frame_, frame);
 
       if (!tf_opt.has_value())
         continue;
@@ -269,7 +272,7 @@ private:
       // Build and publish (unique_ptr -> move overload -> IPC-friendly)
       auto msg = std::make_unique<geometry_msgs::msg::PoseStamped>();
       msg->header.stamp    = tf.header.stamp;
-      msg->header.frame_id = "base_link";
+      msg->header.frame_id = ref_frame_;
       msg->pose.position.x = tf.transform.translation.x;
       msg->pose.position.y = tf.transform.translation.y;
       msg->pose.position.z = tf.transform.translation.z;
@@ -277,36 +280,6 @@ private:
 
       target_pose_pub_[arm]->publish(std::move(msg));
     }
-
-    // auto left_tf_opt = get_tf("base_link", "left_hand_frame");
-    // if (left_tf_opt.has_value())
-    // {
-    //   const geometry_msgs::msg::TransformStamped& left_tf = left_tf_opt.value();
-      
-    //   auto left_pose = std::make_unique<geometry_msgs::msg::PoseStamped>();
-    //   left_pose->header.stamp = this->get_clock()->now();
-    //   left_pose->header.frame_id = "base_link";
-    //   left_pose->pose.position.x = left_tf.transform.translation.x;
-    //   left_pose->pose.position.y = left_tf.transform.translation.y;
-    //   left_pose->pose.position.z = left_tf.transform.translation.z;
-    //   left_pose->pose.orientation = left_tf.transform.rotation;
-    //   target_pose_pub_[Arm::LEFT]->publish(std::move(left_pose));
-    // }
-
-    // auto right_tf_opt = get_tf("base_link", "right_hand_frame");
-    // if (right_tf_opt.has_value())
-    // {
-    //   const geometry_msgs::msg::TransformStamped& right_tf = right_tf_opt.value();
-
-    //   auto right_pose = std::make_unique<geometry_msgs::msg::PoseStamped>();
-    //   right_pose->header.stamp = this->get_clock()->now();
-    //   right_pose->header.frame_id = "base_link";
-    //   right_pose->pose.position.x = right_tf.transform.translation.x;
-    //   right_pose->pose.position.y = right_tf.transform.translation.y;
-    //   right_pose->pose.position.z = right_tf.transform.translation.z;
-    //   right_pose->pose.orientation = right_tf.transform.rotation;
-    //   target_pose_pub_[Arm::RIGHT]->publish(right_pose);
-    // }
   }
 
   std::optional<geometry_msgs::msg::TransformStamped> get_tf(
@@ -352,39 +325,39 @@ private:
       return;
     }
 
-    tf2::Transform t_end;
-    tf2::fromMsg(msg->pose, t_end);
+    tf2::Transform tf_end;
+    tf2::fromMsg(msg->pose, tf_end);
 
     if (!is_initial_recorded_[arm]) 
     {
-      t_begin_[arm] = t_end;
+      tf_begin_[arm] = tf_end;
 
       const std::string ee_frame = tcp_.at(arm); 
-      auto t_zero_opt = get_tf("base_link", ee_frame);
+      auto tf_zero_opt = get_tf(ref_frame_, ee_frame);
 
-      if (t_zero_opt.has_value()) 
+      if (tf_zero_opt.has_value()) 
       {
-        tf2::fromMsg(t_zero_opt.value().transform, t_zero_[arm]);
+        tf2::fromMsg(tf_zero_opt.value().transform, tf_zero_[arm]);
         is_initial_recorded_[arm] = true;
-        RCLCPP_INFO(this->get_logger(), "Recorded %s arm T_begin and T_zero", arm_to_str(arm).c_str());
+        RCLCPP_INFO(this->get_logger(), "Recorded %s arm tf_begin and tf_zero", arm_to_str(arm).c_str());
       } 
       else 
       {
         RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), 1000, 
-          "Waiting for %s arm current pose for T_zero...", arm_to_str(arm).c_str());
+          "Waiting for %s arm current pose for tf_zero...", arm_to_str(arm).c_str());
         return;
       }
     }
 
-    tf2::Transform t_delta = t_begin_[arm].inverse() * t_end;
-    tf2::Transform t_result = t_zero_[arm] * t_delta;
+    tf2::Transform tf_delta = tf_begin_[arm].inverse() * tf_end;
+    tf2::Transform tf_result = tf_zero_[arm] * tf_delta;
 
     geometry_msgs::msg::PoseStamped result_msg;
     result_msg.header.stamp = msg->header.stamp;
-    result_msg.header.frame_id = "base_link"; 
-    tf2::toMsg(t_result, result_msg.pose);
+    result_msg.header.frame_id = ref_frame_; 
+    tf2::toMsg(tf_result, result_msg.pose);
 
-    broadcast_tf(std::make_shared<geometry_msgs::msg::PoseStamped>(result_msg), "base_link", frame);
+    broadcast_tf(std::make_shared<geometry_msgs::msg::PoseStamped>(result_msg), ref_frame_, frame);
   }
 
   void btn_a_cb(const xr_teleop_msgs::msg::Button::SharedPtr msg, const Arm arm)
@@ -401,7 +374,7 @@ private:
     else if (is_pressed && was_pressed_[arm]) 
     {
       double held_sec = (this->now() - press_start_time_[arm]).seconds();
-      if (held_sec >= BUTTON_HOLD_DURATION) 
+      if (held_sec >= button_hold_duration_) 
       {
         if (!enabled_[arm]) 
         {
@@ -443,50 +416,61 @@ private:
     tf_broadcaster_->sendTransform(t);
   }
 
-  void broadcast_static_tf()
+  void publish_static_tf(
+    const std::string& frame_id,
+    const std::string& child_frame_id,
+    double x, double y, double z,
+    double roll, double pitch, double yaw)
   {
     geometry_msgs::msg::TransformStamped t;
-    std::vector<std::string> xr_reference_data = this->get_parameter("xr_reference_data").as_string_array();
-
     t.header.stamp = this->get_clock()->now();
-    t.header.frame_id = xr_reference_data[0];
-    t.child_frame_id = xr_reference_data[1];
+    t.header.frame_id = frame_id;
+    t.child_frame_id  = child_frame_id;
 
-    t.transform.translation.x = std::stof(xr_reference_data[2]);
-    t.transform.translation.y = std::stof(xr_reference_data[3]);
-    t.transform.translation.z = std::stof(xr_reference_data[4]);
-
-    // Convert string to float for RPY and convert to quaternion
-    double roll = std::stod(xr_reference_data[5]);
-    double pitch = std::stod(xr_reference_data[6]);
-    double yaw = std::stod(xr_reference_data[7]);
+    t.transform.translation.x = x;
+    t.transform.translation.y = y;
+    t.transform.translation.z = z;
 
     tf2::Quaternion q;
     q.setRPY(roll, pitch, yaw);
-
     t.transform.rotation.x = q.x();
     t.transform.rotation.y = q.y();
     t.transform.rotation.z = q.z();
     t.transform.rotation.w = q.w();
 
     tf_static_broadcaster_->sendTransform(t);
-    RCLCPP_INFO(this->get_logger(), "Published static transform from %s to %s", 
-      t.header.frame_id.c_str(), t.child_frame_id.c_str());
+    RCLCPP_INFO(this->get_logger(), "Published static transform from %s to %s",
+      frame_id.c_str(), child_frame_id.c_str());
+  }
 
-    geometry_msgs::msg::TransformStamped tf_xr_head;
-    tf_xr_head.header.stamp = this->get_clock()->now();
-    tf_xr_head.header.frame_id = "xr_base_link";
-    tf_xr_head.child_frame_id = "head_frame";
-    tf_static_broadcaster_->sendTransform(tf_xr_head);
-    RCLCPP_INFO(this->get_logger(), "Published static transform from %s to %s", 
-      tf_xr_head.header.frame_id.c_str(), tf_xr_head.child_frame_id.c_str());
+  void broadcast_static_tf()
+  {
+    std::vector<std::string> xr = this->get_parameter("xr_reference_data").as_string_array();
+    if (xr.size() == 8) 
+    {
+      publish_static_tf(
+        xr[0], xr[1],
+        std::stod(xr[2]), std::stod(xr[3]), std::stod(xr[4]),
+        std::stod(xr[5]), std::stod(xr[6]), std::stod(xr[7]));
+    }
+    else
+    {
+      RCLCPP_ERROR(this->get_logger(), "xr_reference_data must have == 8 elements, got %zu", xr.size());
+    }
+    
+    publish_static_tf("xr_base_link", "head_frame",
+      0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0);
   }
 
   // Member variables
   double max_age_s_;
+  double button_hold_duration_;
+  std::string ref_frame_;
+
   std::unordered_map<Arm, bool> is_initial_recorded_;
-  std::unordered_map<Arm, tf2::Transform> t_begin_;
-  std::unordered_map<Arm, tf2::Transform> t_zero_;
+  std::unordered_map<Arm, tf2::Transform> tf_begin_;
+  std::unordered_map<Arm, tf2::Transform> tf_zero_;
 
   std::unordered_map<Arm, rclcpp::Time> press_start_time_;
   std::unordered_map<Arm, bool> was_pressed_;
@@ -508,7 +492,6 @@ private:
 
   std::unordered_map<Arm, std::string> tcp_;
   std::unordered_map<Arm, std::string> k_sources_;
-  static constexpr double BUTTON_HOLD_DURATION = 0.5;
 };
 
 } // namespace xr_teleop

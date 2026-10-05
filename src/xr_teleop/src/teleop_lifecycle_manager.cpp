@@ -27,7 +27,7 @@ namespace
 using lifecycle_msgs::msg::State;
 using lifecycle_msgs::msg::Transition;
 
-const char * state_name(uint8_t id)
+const char* state_name(uint8_t id)
 {
   switch (id)
   {
@@ -40,7 +40,7 @@ const char * state_name(uint8_t id)
   }
 }
 
-const char * transition_name(uint8_t id)
+const char* transition_name(uint8_t id)
 {
   switch (id)
   {
@@ -104,8 +104,9 @@ public:
     }
     else
     {
-      for (const auto & name : nodes)
+      for (const auto& name : nodes)
       {
+        RCLCPP_INFO(get_logger(), "[%s] node will be start automatically", name.c_str());
         clients_[name] = {
           create_client<GetState>(name + "/get_state"),
           create_client<ChangeState>(name + "/change_state"),

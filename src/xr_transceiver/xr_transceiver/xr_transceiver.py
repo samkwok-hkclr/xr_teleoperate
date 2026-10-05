@@ -1,19 +1,27 @@
-
 import sys
+import time
 import numpy as np
 from functools import partial
+from multiprocessing import Manager, Value
+from multiprocessing import Array as _Array
 
 from enum import Enum
 from scipy.spatial.transform import Rotation as R
 
 import rclpy
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data,  QoSProfile, DurabilityPolicy, ReliabilityPolicy, HistoryPolicy
 from rclpy.lifecycle import Node as LifecycleNode
 from rclpy.lifecycle import State
 from rclpy.lifecycle import TransitionCallbackReturn
 from rclpy.executors import ExternalShutdownException
 
-from std_msgs.msg import Bool
+from tf2_ros import (
+    Buffer, TransformListener,
+    LookupException, ConnectivityException, ExtrapolationException,
+)
+
+from std_msgs.msg import Bool, String
+from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PoseStamped
 from xr_teleop_msgs.msg import Button, ButtonStrength, ButtonThumbstick
 
@@ -93,6 +101,10 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
         super().__init__('xr_transceiver')
         self.declare_parameter('pose_frequency', 50.0)
         self.declare_parameter('button_frequency', 20.0)
+        self.declare_parameter('tf_to_show', ["tcp_l", "tcp_r", "left_hand_frame", "right_hand_frame"])
+        self.declare_parameter('tf_base_frame', "base_link")
+        self.declare_parameter('server_ip', "127.0.0.1")
+        self.declare_parameter('server_port', 8012)
 
         # Initialize properties to None/Empty so they exist
         self.head_pose_pub_ = None
@@ -104,10 +116,31 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
         self.ctrl_b_btn_pub_ = dict()
 
         self.warn_sub_ = dict()
+        self.joint_state_sub_ = None
+
+        self.robot_description_sub_ = None
+        self._robot_description: str | None = None
+
+        self._server_ip: str | None = None
+        self._server_port: int | None = None
+
+        self._joint_names_shared = None
+        self._joint_positions_shared = None
+        self._joint_count_shared = None
+        self._joint_state_updated = None
         
+        self._tf_frames: list[str] = []
+        self._tf_base_frame: str = "base_link"
+        self._tf_poses_shared: dict = {}
+        self._tf_poses_updated = None
+        self._tf_last_seen_shared = None
+
+        self._tf_buffer = None
+        self._tf_listener = None
+
         self.pose_timer_ = None
         self.button_timer_ = None
-        self.vuer_wrapper = None
+        self.vuer_wrapper_ = None
 
         self.arm_reference_mode = "head_position" # "head_yaw" "head_position"
         
@@ -115,9 +148,25 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
 
     def on_configure(self, state: State) -> TransitionCallbackReturn:
         self.get_logger().info("Configuring...")
+
+        MAX_JOINTS = 64
+        self._manager = Manager()
+        self._joint_names_shared = self._manager.list()
+        self._joint_positions_shared = _Array('d', MAX_JOINTS, lock=True)
+        self._joint_count_shared = Value('i', 0, lock=True)
+        self._joint_state_updated = Value('b', False, lock=True)
+
+        self._server_ip = str(self.get_parameter('server_ip').value)
+        self._server_port = int(self.get_parameter('server_port').value)
+
+        self._tf_frames = list(self.get_parameter('tf_to_show').value)
+        self._tf_base_frame = str(self.get_parameter('tf_base_frame').value)
+        self._tf_poses_shared = { f: _Array('d', 16, lock=True) for f in self._tf_frames }
+        self._tf_poses_updated = Value('b', False, lock=True)
+        self._tf_last_seen_shared = self._manager.dict()
+        self.get_logger().info(f"TF frames to display (base='{self._tf_base_frame}'): {self._tf_frames}")
         
         self.head_pose_pub_ = self.create_lifecycle_publisher(PoseStamped, '/xr/raw_head_pose', qos_profile=qos_profile_sensor_data)
-        
         for arm in ARM:
             side = arm.name.lower()
             self.pose_pub_[arm] = self.create_lifecycle_publisher(PoseStamped, f'/xr/raw_{side}_arm', qos_profile=qos_profile_sensor_data)
@@ -128,9 +177,23 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
             self.ctrl_b_btn_pub_[arm] = self.create_lifecycle_publisher(Button, f'/xr/{side}_b_button', qos_profile=qos_profile_sensor_data)
 
             self.warn_sub_[arm] = self.create_subscription(Bool, f'/{side}_arm/warn', partial(self.warn_cb, arm=arm), 1)
+        
+        self.joint_state_sub_ = self.create_subscription(JointState, '/joint_states', self._joint_state_cb, 1)
+
+        urdf_qos = QoSProfile(
+            depth=1,
+            history=HistoryPolicy.KEEP_LAST,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
+
+        self.robot_description_sub_ = self.create_subscription(String, "robot_description", self._robot_description_cb, urdf_qos)
 
         # Initialize the hardware/wrapper
-        self.vuer_wrapper = VuerWrapper()
+        # self.vuer_wrapper_ = VuerWrapper()
+
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self)
 
         self.get_logger().info("Configuration done...")
         return TransitionCallbackReturn.SUCCESS
@@ -177,8 +240,10 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
             self.destroy_publisher(self.ctrl_thumbstick_pub_[arm])
             self.destroy_publisher(self.ctrl_a_btn_pub_[arm])
             self.destroy_publisher(self.ctrl_b_btn_pub_[arm])
-            
-            self.destroy_subscription(self.warn_sub_[arm])
+
+            if self.warn_sub_[arm] is not None:
+                self.destroy_subscription(self.warn_sub_[arm])
+                self.warn_sub_[arm] = None
             
         self.pose_pub_.clear()
         self.ctrl_trigger_pub_.clear()
@@ -187,9 +252,31 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
         self.ctrl_a_btn_pub_.clear()
         self.ctrl_b_btn_pub_.clear()
 
-        if self.vuer_wrapper:
-            self.vuer_wrapper.close() 
-            self.vuer_wrapper = None
+        if self.joint_state_sub_ is not None:
+            self.destroy_subscription(self.joint_state_sub_)
+            self.joint_state_sub_ = None
+
+        if self.robot_description_sub_ is not None:
+            self.destroy_subscription(self.robot_description_sub_)
+            self.robot_description_sub_ = None
+        self._robot_description = None
+
+        self._joint_names_shared[:] = []
+        with self._joint_count_shared.get_lock():
+            self._joint_count_shared.value = 0
+
+        self._tf_frames = []
+        self._tf_poses_shared.clear()
+        self._tf_poses_updated = None
+        self._tf_base_frame = "base_link"
+        self._tf_last_seen_shared.clear()
+
+        self._tf_listener = None
+        self._tf_buffer = None
+
+        if self.vuer_wrapper_:
+            self.vuer_wrapper_.close() 
+            self.vuer_wrapper_ = None
 
         self.get_logger().info("Cleaning done...")
         return TransitionCallbackReturn.SUCCESS
@@ -198,15 +285,62 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
         self.get_logger().info("Shutting down...")
         self.get_logger().info("Shutdown done...")
         return TransitionCallbackReturn.SUCCESS
+    
+    def _joint_state_cb(self, msg: JointState):
+        n = min(len(msg.name), len(self._joint_positions_shared))
 
+        with self._joint_positions_shared.get_lock():
+            for i in range(n):
+                self._joint_positions_shared[i] = float(msg.position[i])
+
+        # Names rarely change; only rewrite if the set differs.
+        if len(self._joint_names_shared) != n:
+            self._joint_names_shared[:] = list(msg.name)[:n]
+
+        with self._joint_count_shared.get_lock():
+            self._joint_count_shared.value = n
+
+        with self._joint_state_updated.get_lock():
+            self._joint_state_updated.value = True
+
+    def _robot_description_cb(self, msg: String) -> None:
+        self._robot_description = msg.data
+        self.get_logger().info(f"Received robot_description ({len(msg.data)} bytes).")
+
+        if self.vuer_wrapper_ is None:
+            try:
+                self.vuer_wrapper_ = VuerWrapper(
+                    server_ip=self._server_ip,
+                    server_port=self._server_port,
+                    robot_description=self._robot_description,
+                    joint_names_shared=self._joint_names_shared,
+                    joint_positions_shared=self._joint_positions_shared,
+                    joint_count_shared=self._joint_count_shared,
+                    joint_state_updated=self._joint_state_updated,
+                    tf_frames=self._tf_frames,
+                    tf_poses_shared=self._tf_poses_shared,
+                    tf_poses_updated=self._tf_poses_updated,
+                    tf_last_seen=self._tf_last_seen_shared, 
+                )
+            except Exception as e:
+                self.get_logger().error(f"Failed to start VuerWrapper: {e}")
+
+    def _transform_to_matrix(self, t) -> np.ndarray:
+        mat = np.eye(4)
+        tr = t.transform.translation
+        rot = t.transform.rotation
+        mat[:3, 3] = [tr.x, tr.y, tr.z]
+        mat[:3, :3] = R.from_quat([rot.x, rot.y, rot.z, rot.w]).as_matrix()
+        return mat
+    
     def is_active(self) -> bool:
         return self.current_state[1] == State.PRIMARY_STATE_ACTIVE
 
     def is_connected(self) -> bool:
-        return self.vuer_wrapper.client_connected
+        return self.vuer_wrapper_.client_connected
 
     def is_data_ready(self) -> bool:
-        return self.vuer_wrapper.motion_data_ready
+        return self.vuer_wrapper_.motion_data_ready
 
     def is_ready_to_publish(self) -> bool:
         return self.is_connected() and self.is_data_ready()
@@ -216,23 +350,46 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
             return
         
         if arm == ARM.LEFT:
-            with self.vuer_wrapper.left_warn_shared.get_lock():
-                self.vuer_wrapper.left_warn_shared.value = msg.data
+            with self.vuer_wrapper_.left_warn_shared.get_lock():
+                self.vuer_wrapper_.left_warn_shared.value = msg.data
         elif arm == ARM.RIGHT:
-            with self.vuer_wrapper.right_warn_shared.get_lock():
-                self.vuer_wrapper.right_warn_shared.value = msg.data
+            with self.vuer_wrapper_.right_warn_shared.get_lock():
+                self.vuer_wrapper_.right_warn_shared.value = msg.data
 
         if msg and msg.data:
             self.get_logger().debug(f"{arm.name.lower()} warning!")
 
     def pose_timer_cb(self):
+        if self.vuer_wrapper_ is None:
+            return
+
+        if self.is_connected() and self._tf_buffer is not None and self._tf_frames:
+            wrote_any = False
+            for frame in self._tf_frames:
+                try:
+                    t = self._tf_buffer.lookup_transform(self._tf_base_frame, frame, rclpy.time.Time())
+                except (LookupException, ConnectivityException, ExtrapolationException) as e:
+                    self.get_logger().debug(
+                        f"[TF] {frame} lookup failed: {type(e).__name__}: {e}",
+                        throttle_duration_sec=1.0,
+                    )
+                    continue
+                self._tf_last_seen_shared[frame] = time.monotonic()
+                mat = self._transform_to_matrix(t)
+                with self._tf_poses_shared[frame].get_lock():
+                    self._tf_poses_shared[frame][:] = mat.flatten(order="F")
+                wrote_any = True
+            if wrote_any:
+                with self._tf_poses_updated.get_lock():
+                    self._tf_poses_updated.value = True
+        
         if not self.is_ready_to_publish():
             return
 
-        Bxr_world_head, _ = safe_mat_update(CONST_HEAD_POSE, self.vuer_wrapper.head_pose)
+        Bxr_world_head, _ = safe_mat_update(CONST_HEAD_POSE, self.vuer_wrapper_.head_pose)
 
-        left_Bxr_world_arm, _ = safe_mat_update(CONST_LEFT_ARM_POSE, self.vuer_wrapper.left_arm_pose)
-        right_Bxr_world_arm, _ = safe_mat_update(CONST_RIGHT_ARM_POSE, self.vuer_wrapper.right_arm_pose)
+        left_Bxr_world_arm, _ = safe_mat_update(CONST_LEFT_ARM_POSE, self.vuer_wrapper_.left_arm_pose)
+        right_Bxr_world_arm, _ = safe_mat_update(CONST_RIGHT_ARM_POSE, self.vuer_wrapper_.right_arm_pose)
 
         Brobot_world_head = T_ROBOT_OPENXR @ Bxr_world_head @ T_OPENXR_ROBOT
         left_Brobot_world_arm  = T_ROBOT_OPENXR @ left_Bxr_world_arm @ T_OPENXR_ROBOT
@@ -254,11 +411,14 @@ class XRTransceiver(LifecycleNode): # Inherit from LifecycleNode
         self.pose_pub_[ARM.RIGHT].publish(right_pose)
 
     def btn_timer_cb(self):
+        if self.vuer_wrapper_ is None:
+            return
+        
         if not self.is_ready_to_publish():
             return
 
         now = self.get_clock().now().to_msg()
-        wrapper = self.vuer_wrapper
+        wrapper = self.vuer_wrapper_
 
         for arm in ARM:
             side = arm.name.lower()

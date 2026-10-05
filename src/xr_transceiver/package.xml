@@ -12,6 +12,7 @@
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-scipy</exec_depend>
   <exec_depend>python3-vuer</exec_depend>
+  <exec_depend version_gte="3.9.2">python3-aiohttp</exec_depend>
 
   <exec_depend>xr_teleop_msgs</exec_depend>
 

@@ -1,9 +1,10 @@
 # MoveIt uses this configuration for controller management
 
-# trajectory_execution:
-#   allowed_execution_duration_scaling: 1.2
-#   allowed_goal_duration_margin: 0.5
-#   allowed_start_tolerance: 0.02
+trajectory_execution:
+  allowed_execution_duration_scaling: 10.0    # 从 1.1 → 2.0
+  allowed_goal_duration_margin: 10.0          # 从 1.0 → 5.0
+  trajectory_duration_monitoring: false      # 完全关闭时长监控
+  allowed_start_tolerance: 0.02
 #   execution_duration_monitoring: false
 
 moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager

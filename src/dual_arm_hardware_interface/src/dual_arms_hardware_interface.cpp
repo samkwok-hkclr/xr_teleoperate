@@ -136,8 +136,8 @@ CallbackReturn DualArmsHardwareInterface::on_init_impl()
     }
   };
 
-  trajectory_mode_.store(static_cast<uint8_t>(read_u16("trajectory_mode", 1)));
-  trajectory_radio_.store(read_u16("trajectory_radio", 15));
+  trajectory_mode_.store(static_cast<uint8_t>(read_u16("trajectory_mode", 2)));
+  trajectory_radio_.store(read_u16("trajectory_radio", 500));
 
   RCLCPP_INFO(logger_, "[%s] initial trajectory_mode=%u, radio=%u",
               component_name(),

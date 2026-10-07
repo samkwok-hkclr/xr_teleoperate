@@ -34,9 +34,16 @@ def generate_launch_description():
     # ------------------------------------------------------------------
     left_arm_sim = LaunchConfiguration("left_arm_sim")
     right_arm_sim = LaunchConfiguration("right_arm_sim")
+    left_gripper_sim  = LaunchConfiguration("left_gripper_sim")
+    right_gripper_sim = LaunchConfiguration("right_gripper_sim")
     use_respawn = LaunchConfiguration("use_respawn")
     use_rviz = LaunchConfiguration("use_rviz")
     params_file = LaunchConfiguration("params_file")
+    use_telemanip  = LaunchConfiguration("use_telemanip")
+    cell_id = LaunchConfiguration("cell_id")
+    period_ms = LaunchConfiguration("period_ms")
+    zenoh_config = LaunchConfiguration("zenoh_config")
+    agent_wait_ms = LaunchConfiguration("agent_wait_ms")
 
     # ------------------------------------------------------------------
     # Declare Launch Arguments
@@ -53,6 +60,20 @@ def generate_launch_description():
             "right_arm_sim",
             default_value="true",
             description="Use simulation for right arm",
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "left_gripper_sim",
+            default_value="true",
+            description="Use simulation for left gripper",
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "right_gripper_sim",
+            default_value="true",
+            description="Use simulation for right gripper",
         )
     )
     ld.add_action(
@@ -80,6 +101,43 @@ def generate_launch_description():
             description="Path to robot controller parameters file",
         )
     )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "use_telemanip",
+            default_value="false",
+            description="Use the new telemanip Zenoh hardware interface instead of the legacy UDP one"
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "cell_id",
+            default_value="cell-cuarm1",
+            description="Telemanip cell id (must match the agent)"
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "period_ms",
+            default_value="20",
+            description="Telemanip command period in ms (must match the agent)"
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "zenoh_config",
+            default_value="",
+            description="Absolute path to zenoh.json5. "
+                        "Empty -> auto-derived from "
+                        "share/dual_arm_hardware_interface/config/zenoh.json5",
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "agent_wait_ms",
+            default_value="10000",
+            description="Max wait for the telemanip agent liveliness token (ms)",
+        )
+    )
 
     # ------------------------------------------------------------------
     # Paths and MoveIt Configurations
@@ -98,13 +156,24 @@ def generate_launch_description():
         .robot_description(
             file_path="urdf/dual_arm_robot.urdf.xacro",
             mappings={
-                "left_arm_sim": left_arm_sim,
-                "right_arm_sim": right_arm_sim,
-                "config_prefix": os.path.join(get_package_share_directory("cuarm_configuration"), "dual_v2_2")
+                "left_arm_sim":   left_arm_sim,
+                "right_arm_sim":  right_arm_sim,
+                "left_gripper_sim": left_gripper_sim,
+                "right_gripper_sim": right_gripper_sim,
+                "config_prefix":  os.path.join(
+                    get_package_share_directory("cuarm_configuration"),
+                    "dual_v2_2",
+                ),
+                "use_telemanip":  use_telemanip,
+                "cell_id":        cell_id,
+                "period_ms":      period_ms,
+                "zenoh_config":     zenoh_config,
+                "agent_wait_ms":    agent_wait_ms,
             },
         )
         .robot_description_semantic(file_path="config/dual_arm_robot.srdf")
         .robot_description_kinematics(file_path="config/kinematics.yaml")
+        .joint_limits(file_path="config/joint_limits.yaml")
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .planning_pipelines(pipelines=["ompl"])
         .to_moveit_configs()

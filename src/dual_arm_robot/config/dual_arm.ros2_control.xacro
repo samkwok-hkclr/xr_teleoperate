@@ -2,55 +2,111 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <!-- ============================================================
-       Dual-arm (left + right) combined ros2_control block.
+       Dual-arm (left + head + right) combined ros2_control block.
 
-       Why combined:
-         The SDK uses a single 100 Hz UDP command channel. Every
-         ControlApi::move_joint(group, ...) rewrites the JointCmd array
-         for the WHOLE robot, filling non-selected arms with their
-         current feedback. If left and right arms are separate
-         SystemInterface instances, controller_manager calls write()
-         twice per cycle → two UDP packets → rt_control drops one and
-         the other arm gets frozen at its current position.
-         Combining into ONE SystemInterface ensures one packet per cycle
-         containing targets for every joint (left + head + right).
+       Two selectable hardware interfaces:
+
+         1) DualArmsHardwareInterface           (legacy)
+            Uses the UDP ControlApi SDK. Select this with:
+              use_telemanip:=false
+            Existing behavior is preserved, including sim_left / sim_right.
+
+         2) DualArmsTelemanipHardwareInterface  (new)
+            Uses the telemanip cuarm_2_2 C ABI over Zenoh. Select with:
+              use_telemanip:=true
+            Needs a running zenohd and a telemanip-agent-cuarm_2_2 process.
+            sim_left / sim_right / config_prefix are ignored in this mode.
 
        Params:
-         sim_left      : "true" / "false" — left arm simulation
-         sim_right     : "true" / "false" — right arm simulation
-         config_prefix : directory containing config.yaml
-         namespace     : optional, kept for compatibility with the
-                         caller's existing macro signature
+
+       Common:
+         use_telemanip  : "true" / "false"     (default true)
+
+       Legacy-only:
+         sim_left       : "true" / "false"     left  arm simulation
+         sim_right      : "true" / "false"     right arm simulation
+         config_prefix  : directory containing the SDK's config.yaml
+
+       Telemanip-only:
+         cell_id        : string               e.g. "cell-cuarm1"
+         period_ms      : int                  must match the agent's
+         zenoh_config   : string               absolute path to zenoh.json5;
+                                               empty -> auto-derived from
+                                               share/<pkg>/config/zenoh.json5
+         agent_wait_ms  : int                  max wait for the agent token
+         trajectory_mode : int                 optional (0/1/2)
+         trajectory_radio: int                 optional (mode-1: 0..100,
+                                                          mode-2: 0..999)
+
+       namespace : optional, kept for compatibility with the caller's
+                   existing macro signature.
        ============================================================ -->
   <xacro:macro name="realman_arm_ros2_control"
-               params="sim_left sim_right config_prefix namespace:=''">
+               params="sim_left sim_right config_prefix
+                       use_telemanip:=true
+                       cell_id:=cell-cuarm1
+                       period_ms:=10
+                       zenoh_config:=''
+                       agent_wait_ms:=10000
+                       trajectory_mode:=2
+                       trajectory_radio:=500
+                       namespace:=''">
 
     <ros2_control name="dual_arms" type="system">
 
       <hardware>
-      <!-- Both sides simulated → plain mock passthrough -->
-      <xacro:if value="${str(sim_left).lower() == 'true' and str(sim_right).lower() == 'true'}">
-        <plugin>mock_components/GenericSystem</plugin>
-      </xacro:if>
+        <!-- ============================================================ -->
+        <!-- Path A — telemanip (Zenoh + cuarm_2_2 C ABI)                 -->
+        <!-- ============================================================ -->
+        <xacro:if value="${str(use_telemanip).lower() == 'true'}">
+          <plugin>dual_arm_hardware_interface/DualArmsTelemanipHardwareInterface</plugin>
 
-      <!-- At least one side real → real plugin -->
-      <xacro:unless value="${str(sim_left).lower() == 'true' and str(sim_right).lower() == 'true'}">
-        <plugin>dual_arm_hardware_interface/DualArmsHardwareInterface</plugin>
-        <param name="config_prefix">${config_prefix}</param>
-        <param name="sim_left">${sim_left}</param>
-        <param name="sim_right">${sim_right}</param>
-        <param name="trajectory_mode">2</param>
-        <param name="trajectory_radio">500</param>
-      </xacro:unless>
-    </hardware>
+          <param name="cell_id">${cell_id}</param>
+          <param name="period_ms">${period_ms}</param>
+          <param name="agent_wait_ms">${agent_wait_ms}</param>
+          <param name="trajectory_mode">${trajectory_mode}</param>
+          <param name="trajectory_radio">${trajectory_radio}</param>
+          <param name="max_joint_velocity_deg_s">0.0</param>
+          <param name="max_joint_acceleration_deg_s2">0.0</param>
 
-      <!-- ============================================================
-           Left arm — 7 joints
-           The hardware interface classifies joints by name suffix:
-             *_l → SDK arm[0]  (left)
-             *_r → SDK arm[2]  (right)
-             other → SDK arm[1] (head)
-           ============================================================ -->
+          <!-- zenoh_config is optional. Pass only when non-empty; when
+               absent the hardware interface derives an absolute path from
+               share/dual_arm_hardware_interface/config/zenoh.json5. -->
+          <xacro:if value="${str(zenoh_config) != ''}">
+            <param name="zenoh_config">${zenoh_config}</param>
+          </xacro:if>
+        </xacro:if>
+
+        <!-- ============================================================ -->
+        <!-- Path B — legacy (UDP ControlApi SDK)                         -->
+        <!-- ============================================================ -->
+        <xacro:unless value="${str(use_telemanip).lower() == 'true'}">
+          <!-- B1: both sides simulated -> mock passthrough -->
+          <xacro:if value="${str(sim_left).lower() == 'true' and str(sim_right).lower() == 'true'}">
+            <plugin>mock_components/GenericSystem</plugin>
+          </xacro:if>
+
+          <!-- B2: at least one side real -> legacy SDK plugin -->
+          <xacro:unless value="${str(sim_left).lower() == 'true' and str(sim_right).lower() == 'true'}">
+            <plugin>dual_arm_hardware_interface/DualArmsHardwareInterface</plugin>
+            <param name="config_prefix">${config_prefix}</param>
+            <param name="sim_left">${sim_left}</param>
+            <param name="sim_right">${sim_right}</param>
+            <param name="trajectory_mode">${trajectory_mode}</param>
+            <param name="trajectory_radio">${trajectory_radio}</param>
+          </xacro:unless>
+        </xacro:unless>
+      </hardware>
+
+      <!-- ============================================================ -->
+      <!-- Joints — identical for both paths.                           -->
+      <!-- The hardware interface classifies by name suffix:            -->
+      <!--   *_l  -> "left"  group                                       -->
+      <!--   *_r  -> "right" group                                       -->
+      <!--   other-> "head"  group                                       -->
+      <!-- ============================================================ -->
+
+      <!-- Left arm — 7 joints -->
       <joint name="arm_J1_l">
         <command_interface name="position"/>
         <state_interface name="position"/>
@@ -87,6 +143,7 @@
         <state_interface name="velocity"/>
       </joint>
 
+      <!-- Head — 2 joints -->
       <joint name="head_pan">
         <command_interface name="position"/>
         <state_interface name="position"/>
@@ -98,9 +155,7 @@
         <state_interface name="velocity"/>
       </joint>
 
-      <!-- ============================================================
-           Right arm — 7 joints
-           ============================================================ -->
+      <!-- Right arm — 7 joints -->
       <joint name="arm_J1_r">
         <command_interface name="position"/>
         <state_interface name="position"/>
@@ -137,8 +192,6 @@
         <state_interface name="velocity"/>
       </joint>
 
-
-      
     </ros2_control>
   </xacro:macro>
 

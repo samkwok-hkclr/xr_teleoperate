@@ -2,10 +2,18 @@
 <robot name="dual_arm_robot" xmlns:xacro="http://ros.org/wiki/xacro">
 
 	<!-- Declare launch arguments -->
-	<xacro:arg name="left_arm_sim" default="true" />
-	<xacro:arg name="left_gripper_sim" default="true" />
-	<xacro:arg name="right_arm_sim" default="true" />
-	<xacro:arg name="right_gripper_sim" default="true" />
+	<xacro:arg name="left_arm_sim"      default="true"/>
+	<xacro:arg name="left_gripper_sim"  default="true"/>
+	<xacro:arg name="right_arm_sim"     default="true"/>
+	<xacro:arg name="right_gripper_sim" default="true"/>
+	<xacro:arg name="config_prefix"     default=""/>
+	<xacro:arg name="trajectory_mode"   default="2"/>
+	<xacro:arg name="trajectory_radio"  default="500"/>
+	<xacro:arg name="use_telemanip"     default="true"/>
+	<xacro:arg name="cell_id"           default="cell-cuarm1"/>
+	<xacro:arg name="period_ms"         default="10"/>
+	<xacro:arg name="zenoh_config"      default=""/>
+	<xacro:arg name="agent_wait_ms"     default="10000"/>
 
 	<mujoco>
 		<compiler meshdir="meshes/visual/" balanceinertia="true" discardvisual="false" />
@@ -214,11 +222,24 @@
 		<child link="arm_base_link_r" />
 	</joint>
 
-	<xacro:realman_arm_ros2_control 
+	<!-- <xacro:realman_arm_ros2_control 
 		sim_left="$(arg left_arm_sim)" 
 		sim_right="$(arg right_arm_sim)" 
 		namespace="arm" 
-		config_prefix="$(arg config_prefix)" />
+		config_prefix="$(arg config_prefix)" /> -->
+
+	<xacro:realman_arm_ros2_control
+		sim_left="$(arg left_arm_sim)"
+		sim_right="$(arg right_arm_sim)"
+		config_prefix="$(arg config_prefix)"
+		use_telemanip="$(arg use_telemanip)"
+		cell_id="$(arg cell_id)"
+		period_ms="$(arg period_ms)"
+		zenoh_config="$(arg zenoh_config)"
+		agent_wait_ms="$(arg agent_wait_ms)"
+		trajectory_mode="$(arg trajectory_mode)" 
+    	trajectory_radio="$(arg trajectory_radio)"
+		namespace="arm" />
 
 	<!-- Left Hand -->
 	<joint name="hand_J0_l" type="fixed">

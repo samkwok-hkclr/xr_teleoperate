@@ -3,37 +3,71 @@
 <package format="3">
   <name>dual_arm_hardware_interface</name>
   <version>0.1.0</version>
-  <description>dual_arm hardware interface for ROS2</description>
-  <maintainer email="mskwok@email.com">mskwok</maintainer>
-  <license>Apache-2.0</license>
+  <description>
+    ros2_control SystemInterface plugins for the dual-arm v2.2 robot.
+    Provides two implementations:
+      - DualArmsHardwareInterface (legacy, UDP ControlApi SDK)
+      - DualArmsTelemanipHardwareInterface (telemanip cuarm_2_2 C ABI, Zenoh)
+  </description>
 
+  <maintainer email="you@example.com">Your Name</maintainer>
+  <license>Proprietary</license>
+
+  <url type="website">https://example.com/dual_arm_hardware_interface</url>
+
+  <!-- ============================================================ -->
+  <!-- 构建工具                                                      -->
+  <!-- ============================================================ -->
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>boost</depend>
+  <!-- ============================================================ -->
+  <!-- ROS2 依赖                                                     -->
+  <!-- ============================================================ -->
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>lifecycle_msgs</depend>
+  <depend>diagnostic_updater</depend>
+  <depend>std_msgs</depend>
+
+  <!-- 新：用于 ament_index_cpp::get_package_share_directory() -->
+  <depend>ament_index_cpp</depend>
+
+  <!-- ============================================================ -->
+  <!-- 旧 SDK（UDP ControlApi）—— 保留以兼容旧 DualArmsHardwareInterface -->
+  <!-- ============================================================ -->
   <depend>dual_arm_v2_2_control_sdk</depend>
 
-  <build_depend>rclcpp</build_depend>
-  <build_depend>rclcpp_lifecycle</build_depend>
-  <build_depend>hardware_interface</build_depend>
-  <build_depend>pluginlib</build_depend>
-  <build_depend>lifecycle_msgs</build_depend>
-  <build_depend>diagnostic_updater</build_depend>
+  <!-- ============================================================ -->
+  <!-- 系统依赖                                                      -->
+  <!-- ============================================================ -->
+  <build_depend>boost</build_depend>
+  <exec_depend>boost</exec_depend>
 
-  <exec_depend>rclcpp</exec_depend>
-  <exec_depend>rclcpp_lifecycle</exec_depend>
-  <exec_depend>hardware_interface</exec_depend>
-  <exec_depend>pluginlib</exec_depend>
-  <exec_depend>lifecycle_msgs</exec_depend>
-  <exec_depend>diagnostic_updater</exec_depend>
+  <!-- ============================================================ -->
+  <!-- 运行时依赖：zenohd + telemanip-agent-cuarm_2_2（外部二进制）    -->
+  <!-- 不通过 rosdep 管理，安装时手动放置。这里仅作文档说明。          -->
+  <!-- ============================================================ -->
+  <!--
+    新 DualArmsTelemanipHardwareInterface 运行前需要：
 
+    1. 一台可达的 zenohd（默认 UDP 端口 7447）
+    2. telemanip-agent-cuarm_2_2 进程
+    3. config/zenoh.json5 里的 endpoints 指向 zenohd 地址
+    4. cell_id 与 agent 一致（默认 "cell-cuarm1"）
+  -->
+
+  <!-- ============================================================ -->
+  <!-- 测试依赖                                                      -->
+  <!-- ============================================================ -->
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
+  <!-- ============================================================ -->
+  <!-- 导出                                                          -->
+  <!-- ============================================================ -->
   <export>
     <build_type>ament_cmake</build_type>
-    <build_export_depend>hardware_interface</build_export_depend>
-    <build_export_depend>controller_interface</build_export_depend>
-    <hardware_interface plugin="${prefix}/dual_arm_hardware_interface_plugin.xml"/>
   </export>
-  
 </package>

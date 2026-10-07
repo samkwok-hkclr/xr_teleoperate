@@ -1,0 +1,53 @@
+{
+  /// The node's mode (router, peer or client)
+  "mode": "client",
+  "id": "f444b28a57094e86abca13a36a80900d",
+  namespace: "cuarm",
+  "connect": {
+    "endpoints": [
+      "quic/hub.cubemart.dev:7448",
+    ],
+    "timeout_ms": 5000
+  },
+  scouting: {
+    timeout: 0,
+    delay: 0,
+    multicast: { enabled: false },
+    gossip: { enabled: false }
+  },
+  "transport": {
+    auth: {
+      /// The configuration of authentication.
+      /// A password implies a username is required.
+      usrpwd: {
+        user: "dev_cuarm",
+        password: "uxr6s4h13r2eb328tz3p3xkck6r2k5ur081xtwiaj3t05q8cc0ybzn4tpqkpruih",
+      },
+    },
+    "unicast": {
+      /// LowLatency transport (zenoh 1.10). Negotiated at session establishment:
+      /// active only when the peer enables it too, transparently falls back otherwise.
+      /// NOTE: mutually exclusive with unicast QoS (priority queues); with QoS off,
+      /// all traffic uses the DATA queue and reliability channels still work
+      /// (best-effort frames are never retransmitted).
+      "lowlatency": true,
+      "qos": { "enabled": false }
+    },
+    "link": {
+      "tls": {
+        "root_ca_certificate": "/etc/ssl/certs/ca-certificates.crt"
+      },
+      "tx": {
+        "queue": {
+          /// Adaptive batching delays small messages up to time_limit ms under
+          /// back-pressure — the opposite of what we want for minimal jitter.
+          /// Keep it explicitly off.
+          "batching": {
+            "enabled": false,
+            "time_limit": 0
+          }
+        }
+      }
+    }
+  }
+}

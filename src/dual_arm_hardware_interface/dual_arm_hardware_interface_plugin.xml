@@ -2,6 +2,21 @@
 <library path="dual_arm_hardware_interface">
 
   <!-- ============================================================ -->
+  <!-- New: telemanip cuarm_2_2 C ABI over Zenoh                     -->
+  <!-- ============================================================ -->
+  <class name="dual_arm_hardware_interface/DualArmsTelemanipHardwareInterface"
+         type="dual_arm_hardware_interface::DualArmsTelemanipHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Dual-arm interface over the telemanip cuarm_2_2 C ABI (Zenoh transport).
+      Requires a running zenohd, a telemanip-agent-cuarm_2_2 on the robot host,
+      and the package-local libtelemanip_capi_cuarm_2_2.so. write() stages
+      three joint targets (one per device_id: left / right / head); the SDK's
+      own beat thread packs them into one Envelope per period_ms.
+    </description>
+  </class>
+  
+  <!-- ============================================================ -->
   <!-- Combined dual-arm component (left + head + right, one packet) -->
   <!-- ============================================================ -->
   <class name="dual_arm_hardware_interface/DualArmsHardwareInterface"

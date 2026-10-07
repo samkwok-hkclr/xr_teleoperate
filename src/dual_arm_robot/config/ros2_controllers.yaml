@@ -97,15 +97,33 @@ left_arm_controller:
       - velocity
     state_publish_rate: 50.0
     action_monitor_rate: 20.0
-
+    open_loop_control: false
     allow_partial_joints_goal: true
-    # open_loop_control: true
-    # constraints:
-    #   stopped_velocity_tolerance: 0.01
-    #   goal_time: 0.0
-    #   joint1:
-    #     trajectory: 0.05
-    #     goal: 0.03
+    constraints:
+      stopped_velocity_tolerance: 0.1
+      goal_time: 60.0
+      arm_J1_l:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J2_l:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J3_l:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J4_l:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J5_l:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J6_l:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J7_l:
+        trajectory: 1.0
+        goal: 0.2
+
 
 right_arm_controller:
   ros__parameters:
@@ -124,15 +142,32 @@ right_arm_controller:
       - velocity
     state_publish_rate: 50.0
     action_monitor_rate: 20.0
-
+    open_loop_control: false
     allow_partial_joints_goal: true
-    # open_loop_control: true
-    # constraints:
-    #   stopped_velocity_tolerance: 0.01
-    #   goal_time: 0.0
-    #   joint1:
-    #     trajectory: 0.05
-    #     goal: 0.03
+    constraints:
+      stopped_velocity_tolerance: 0.1
+      goal_time: 60.0
+      arm_J1_r:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J2_r:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J3_r:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J4_r:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J5_r:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J6_r:
+        trajectory: 1.0
+        goal: 0.2
+      arm_J7_r:
+        trajectory: 1.0
+        goal: 0.2
 
 # left_arm_effort_controller:
 #   ros__parameters:

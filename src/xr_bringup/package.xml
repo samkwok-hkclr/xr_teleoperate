@@ -27,6 +27,7 @@
   <exec_depend>xr_transceiver</exec_depend>
   <exec_depend>xr_teleop</exec_depend>
   <exec_depend>robot_controller</exec_depend>
+  <exec_depend>robot_controller_msgs</exec_depend>
   <exec_depend>realman_arm_hardware_interface</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>

@@ -1,30 +1,17 @@
 import os
-import yaml
 
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    EmitEvent,
     OpaqueFunction,
-    RegisterEventHandler,
-    TimerAction,
 )
 from launch.conditions import IfCondition
-from launch.event_handlers import OnProcessStart
-from launch.events import matches_action
-from launch.substitutions import LaunchConfiguration, TextSubstitution
+from launch.substitutions import LaunchConfiguration
 
 from ament_index_python.packages import get_package_share_directory
 
 from launch_ros.actions import Node, LifecycleNode, ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
-from launch_ros.event_handlers import OnStateTransition
-from launch_ros.events.lifecycle import ChangeState
-from launch_param_builder import ParameterBuilder
-from moveit_configs_utils import MoveItConfigsBuilder
-
-from lifecycle_msgs.msg import Transition
-
 
 def _build_conditional_nodes(context, *args, **kwargs):
     """
@@ -36,6 +23,8 @@ def _build_conditional_nodes(context, *args, **kwargs):
     Python.
     """
     # --- resolve the launch arg to a real Python bool -----------------
+    auto_start_str = LaunchConfiguration("auto_start").perform(context)
+    auto_start = auto_start_str.strip().lower() in ("1", "true", "yes", "on")
     all_in_one_str = LaunchConfiguration("all_in_one").perform(context)
     all_in_one = all_in_one_str.strip().lower() in ("1", "true", "yes", "on")
 
@@ -53,8 +42,6 @@ def _build_conditional_nodes(context, *args, **kwargs):
 
     # --- lifecycle node list ------------------------------------------
     lifecycle_nodes = [
-        # "/left_arm/servo_pose_tracking",
-        # "/right_arm/servo_pose_tracking",
         "/left_arm/pose_tracking_wrapper",
         "/right_arm/pose_tracking_wrapper",
         "/xr_teleop",
@@ -69,7 +56,7 @@ def _build_conditional_nodes(context, *args, **kwargs):
         name="teleop_lifecycle_manager",
         parameters=[
             {"managed_nodes": lifecycle_nodes},
-            {"auto_start": True},
+            {"auto_start": auto_start},
         ],
         output="screen",
         emulate_tty=True,
@@ -84,26 +71,11 @@ def generate_launch_description():
     # ------------------------------------------------------------------
     # Launch Configurations
     # ------------------------------------------------------------------
-    left_arm_sim = LaunchConfiguration("left_arm_sim")
-    right_arm_sim = LaunchConfiguration("right_arm_sim")
+    auto_start = LaunchConfiguration("auto_start")
 
     # ------------------------------------------------------------------
     # Declare Launch Arguments
     # ------------------------------------------------------------------
-    ld.add_action(
-        DeclareLaunchArgument(
-            "left_arm_sim",
-            default_value="true",
-            description="Use simulation for left arm",
-        )
-    )
-    ld.add_action(
-        DeclareLaunchArgument(
-            "right_arm_sim",
-            default_value="true",
-            description="Use simulation for right arm",
-        )
-    )
     ld.add_action(
         DeclareLaunchArgument(
             "params_file",
@@ -117,16 +89,9 @@ def generate_launch_description():
     )
     ld.add_action(
         DeclareLaunchArgument(
-            "auto_configure",
+            "auto_start",
             default_value="true",
-            description="Automatically configure lifecycle nodes",
-        )
-    )
-    ld.add_action(
-        DeclareLaunchArgument(
-            "auto_activate",
-            default_value="true",
-            description="Automatically activate lifecycle nodes",
+            description="Automatically start lifecycle nodes",
         )
     )
     ld.add_action(
@@ -136,73 +101,6 @@ def generate_launch_description():
             description="Also launch xr_transceiver and manage it alongside teleop nodes",
         )
     )
-
-    # ------------------------------------------------------------------
-    # Paths and MoveIt Configurations
-    # ------------------------------------------------------------------
-    moveit_config = (
-        MoveItConfigsBuilder("dual_arm_robot", package_name="dual_arm_robot")
-        .robot_description(
-            file_path="urdf/dual_arm_robot.urdf.xacro",
-            mappings={
-                "left_arm_sim": left_arm_sim,
-                "right_arm_sim": right_arm_sim,
-                "config_prefix": os.path.join(get_package_share_directory("cuarm_configuration"), "dual_v2_2")
-            },
-        )
-        .robot_description_semantic(file_path="config/dual_arm_robot.srdf")
-        .robot_description_kinematics(file_path="config/kinematics.yaml")
-        .trajectory_execution(file_path="config/moveit_controllers.yaml")
-        .planning_pipelines(pipelines=["ompl"])
-        .to_moveit_configs()
-    )
-
-    # ------------------------------------------------------------------
-    # 6. Servo & Teleop Lifecycle Nodes
-    # ------------------------------------------------------------------
-    # servo_left_params = {
-    #     "moveit_servo": ParameterBuilder("xr_bringup")
-    #     .yaml("config/pose_tracking_settings.yaml")
-    #     .yaml("config/moveit_servo_pose_tracking_left.yaml")
-    #     .to_dict()
-    # }
-    # servo_right_params = {
-    #     "moveit_servo": ParameterBuilder("xr_bringup")
-    #     .yaml("config/pose_tracking_settings.yaml")
-    #     .yaml("config/moveit_servo_pose_tracking_right.yaml")
-    #     .to_dict()
-    # }
-
-    # ------------------------------------------------------------------
-    # Composable lifecycle nodes (inside the container)
-    # ------------------------------------------------------------------
-    # left_pose_tracking = ComposableNode(
-    #     package="xr_teleop",
-    #     plugin="pose_tracker::PoseTrackerWrapper",
-    #     name="servo_pose_tracking",
-    #     namespace="left_arm",
-    #     parameters=[
-    #         {"side": "left"},
-    #         {"butterworth_filter_coeff": 1.5},
-    #         servo_left_params,
-    #         moveit_config.to_dict(),
-    #     ],
-    #     # extra_arguments=[{"use_intra_process_comms": True}],
-    # )
-
-    # right_pose_tracking = ComposableNode(
-    #     package="xr_teleop",
-    #     plugin="pose_tracker::PoseTrackerWrapper",
-    #     name="servo_pose_tracking",
-    #     namespace="right_arm",
-    #     parameters=[
-    #         {"side": "right"},
-    #         {"butterworth_filter_coeff": 1.5},
-    #         servo_right_params,
-    #         moveit_config.to_dict(),
-    #     ],
-    #     # extra_arguments=[{"use_intra_process_comms": True}],
-    # )
 
     left_pose_tracking = ComposableNode(
         package="xr_teleop",

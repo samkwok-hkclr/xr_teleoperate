@@ -15,10 +15,7 @@ install(
   DIRECTORY 
     config
     launch
-    meshes
     rviz
-    srdf
-    urdf
   DESTINATION share/${PROJECT_NAME}/
 )
 

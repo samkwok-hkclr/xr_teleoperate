@@ -1,11 +1,11 @@
 {
   /// The node's mode (router, peer or client)
   "mode": "client",
-  "id": "f444b28a57094e86abca13a36a80900d",
+  "id": "f444b28a57094e86abca13a36a80900e",
   namespace: "cuarm",
   "connect": {
     "endpoints": [
-      "quic/hub.cubemart.dev:7448",
+      "quic/hub.cubemart.dev:7448?rel=0",
     ],
     "timeout_ms": 5000
   },

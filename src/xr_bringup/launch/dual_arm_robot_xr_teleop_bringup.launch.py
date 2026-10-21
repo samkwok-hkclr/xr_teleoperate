@@ -45,6 +45,7 @@ def _build_conditional_nodes(context, *args, **kwargs):
         "/left_arm/pose_tracking_wrapper",
         "/right_arm/pose_tracking_wrapper",
         "/xr_teleop",
+        "/hardware_lifecycle_manager",
     ]
     if all_in_one:
         lifecycle_nodes.append("xr_transceiver")
@@ -143,7 +144,28 @@ def generate_launch_description():
                 ]
             },
         ],
-        extra_arguments=[{"use_intra_process_comms": True}],
+        # extra_arguments=[{"use_intra_process_comms": True}],
+    )
+
+    hardware_lifecycle_manager = ComposableNode(
+        package="xr_teleop",
+        plugin="xr_teleop::HardwareLifecycleManager",
+        name="hardware_lifecycle_manager",
+        parameters=[{
+            "components": ["dual_arms", "LeftHand", "RightGripper"],
+            "controllers": [
+                "left_arm_controller",
+                "right_arm_controller",
+                "left_hand_controller",
+                "right_gripper_controller",
+                "joint_state_broadcaster",
+            ],
+            "controller_manager": "/controller_manager",
+            "start_service": "/start_robot",
+            "shutdown_service": "/shutdown_robot",
+            "status_topic": "/robot_hardware_status",
+            "service_timeout_sec": 30.0,
+        }],
     )
 
     # ------------------------------------------------------------------
@@ -158,6 +180,7 @@ def generate_launch_description():
             left_pose_tracking,
             right_pose_tracking,
             xr_teleop_node,
+            hardware_lifecycle_manager,
         ],
         output="screen",
         emulate_tty=True,

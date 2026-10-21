@@ -3,6 +3,12 @@ controller_manager:
   ros__parameters:
     update_rate: 100  # Hz
 
+    hardware_components_initial_state:
+      unconfigured:
+        - dual_arms
+        - LeftHand
+        - RightGripper
+
     left_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 

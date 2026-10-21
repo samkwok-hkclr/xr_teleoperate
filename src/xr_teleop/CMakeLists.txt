@@ -16,6 +16,7 @@ find_package(rcpputils REQUIRED)
 
 # Message packages
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
@@ -37,6 +38,7 @@ find_package(moveit_ros_planning_interface REQUIRED)
 find_package(control_toolbox REQUIRED)
 
 find_package(xr_teleop_msgs REQUIRED)
+find_package(robot_controller_msgs REQUIRED)
 
 include_directories(include)
 
@@ -107,11 +109,13 @@ ament_target_dependencies(xr_teleop_component
   rcpputils
   lifecycle_msgs
   std_msgs
+  std_srvs
   geometry_msgs
   tf2_ros
   tf2_eigen
   tf2_geometry_msgs
   xr_teleop_msgs
+  robot_controller_msgs
 )
 
 rclcpp_components_register_node(xr_teleop_component
@@ -131,6 +135,32 @@ ament_target_dependencies(teleop_lifecycle_manager
 )
 
 # -----------------------------------------------------------
+# Hardware Lifecycle Manager (Lifecycle Composable Node Component)
+# -----------------------------------------------------------
+add_library(hardware_lifecycle_manager_component SHARED
+  src/hardware_lifecycle_manager.cpp
+)
+target_compile_features(hardware_lifecycle_manager_component PUBLIC c_std_99 cxx_std_17)
+target_include_directories(hardware_lifecycle_manager_component PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(hardware_lifecycle_manager_component
+  rclcpp::rclcpp
+  rclcpp_lifecycle::rclcpp_lifecycle
+  rclcpp_components::component
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${lifecycle_msgs_TARGETS}
+  ${controller_manager_msgs_TARGETS}
+)
+
+rclcpp_components_register_node(hardware_lifecycle_manager_component
+  PLUGIN "xr_teleop::HardwareLifecycleManager"
+  EXECUTABLE hardware_lifecycle_manager
+)
+
+# -----------------------------------------------------------
 # Install Rules
 # -----------------------------------------------------------
 # Install component shared libraries
@@ -138,6 +168,7 @@ install(TARGETS
   pose_tracker_component
   xr_teleop_component
   pose_tracking_wrapper_component
+  hardware_lifecycle_manager_component
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

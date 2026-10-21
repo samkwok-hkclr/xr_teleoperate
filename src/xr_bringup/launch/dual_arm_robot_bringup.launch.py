@@ -38,6 +38,8 @@ def generate_launch_description():
     right_gripper_sim = LaunchConfiguration("right_gripper_sim")
     use_respawn = LaunchConfiguration("use_respawn")
     use_rviz = LaunchConfiguration("use_rviz")
+    trajectory_mode = LaunchConfiguration("trajectory_mode")
+    trajectory_radio = LaunchConfiguration("trajectory_radio")
     params_file = LaunchConfiguration("params_file")
     use_telemanip  = LaunchConfiguration("use_telemanip")
     cell_id = LaunchConfiguration("cell_id")
@@ -85,6 +87,20 @@ def generate_launch_description():
     )
     ld.add_action(
         DeclareLaunchArgument(
+            "trajectory_mode",
+            default_value="2",
+            description="",
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "trajectory_radio",
+            default_value="200",
+            description="",
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
             "use_rviz",
             default_value="false",
             description="Whether to start RViz2",
@@ -118,7 +134,7 @@ def generate_launch_description():
     ld.add_action(
         DeclareLaunchArgument(
             "period_ms",
-            default_value="20",
+            default_value="10",
             description="Telemanip command period in ms (must match the agent)"
         )
     )
@@ -151,6 +167,7 @@ def generate_launch_description():
         "ros2_controllers.yaml",
     )
 
+    # how to set do not auto start the hardware component with ros2_control tag?
     moveit_config = (
         MoveItConfigsBuilder("dual_arm_robot", package_name="dual_arm_robot")
         .robot_description(
@@ -160,9 +177,11 @@ def generate_launch_description():
                 "right_arm_sim":  right_arm_sim,
                 "left_gripper_sim": left_gripper_sim,
                 "right_gripper_sim": right_gripper_sim,
+                "trajectory_mode": trajectory_mode,
+                "trajectory_radio": trajectory_radio,
                 "config_prefix":  os.path.join(
                     get_package_share_directory("cuarm_configuration"),
-                    "dual_v2_2",
+                    "dual_v2_1",
                 ),
                 "use_telemanip":  use_telemanip,
                 "cell_id":        cell_id,
@@ -246,20 +265,20 @@ def generate_launch_description():
     )
     ld.add_action(ros2_control_node)
 
-    basic_controller_names = [
-        "left_arm_controller",
-        "right_arm_controller",
-        "joint_state_broadcaster",
-        "left_hand_controller",
-        "right_gripper_controller",
+    active_controller_names = [
     ]
 
-    tracking_controller_names = [
+    inactive_controller_names = [
+        "joint_state_broadcaster",
+        "left_arm_controller",
+        "right_arm_controller",
+        "left_hand_controller",
+        "right_gripper_controller",
         "left_cartesian_motion_controller",
         "right_cartesian_motion_controller",
     ]
 
-    for controller in basic_controller_names:
+    for controller in active_controller_names:
         ld.add_action(
             Node(
                 package="controller_manager",
@@ -272,7 +291,7 @@ def generate_launch_description():
             )
         )
 
-    for controller in tracking_controller_names:
+    for controller in inactive_controller_names:
         ld.add_action(
             Node(
                 package="controller_manager",

@@ -67,6 +67,9 @@ set_target_properties(telemanip_capi_cuarm_2_2 PROPERTIES
 # 库目标
 # ============================================================
 add_library(dual_arm_hardware_interface SHARED
+  # ---- 新增：两个 interface 的公共实现 ----
+  src/dual_arms_common.cpp
+
   # ---- 基础设施（旧）----
   src/control_api_manager.cpp
   src/hardware_base.cpp
